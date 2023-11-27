@@ -3,3 +3,6 @@
 
 # A symlink produced by default when running `nix build`.
 result
+
+# The results of the `chess.com` coach scraping.
+data/
