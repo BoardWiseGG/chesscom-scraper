@@ -8,8 +8,9 @@ from bs4 import BeautifulSoup
 
 
 # References to paths we use to save any scraped content.
-DATA_COACH_LIST = "data/pages/{}.txt"
-DATA_COACH_DIR = "data/coach/{}/{}"
+DATA_COACH_LIST = "data/pages/{page_no}.txt"
+DATA_COACH_DIR = "data/coach/{member_name}"
+DATA_COACH_FILE = "data/coach/{member_name}/{filename}"
 
 
 async def scrape_coach_links(page_no):
@@ -34,7 +35,7 @@ async def scrape_all_coach_links(max_pages=64):
     """Scan through https://www.chess.com/coaches for all member links."""
     links = []
     for i in range(1, max_pages + 1):
-        filepath = DATA_COACH_LIST.format(i)
+        filepath = DATA_COACH_LIST.format(page_no=i)
         if os.path.isfile(filepath):
             with open(filepath, "r") as f:
                 links.extend(f.readlines())
@@ -56,15 +57,15 @@ async def download_member_info(member_name, filename, href):
     @return: True if we downloaded content. False if the download already
     exists locally.
     """
-    target = DATA_COACH_DIR.format(member_name, filename)
-    if os.path.isfile(target):
+    filepath = DATA_COACH_FILE.format(member_name=member_name, filename=filename)
+    if os.path.isfile(filepath):
         return False
     async with aiohttp.ClientSession() as session:
         async with session.get(href) as response:
             if response.status != 200:
                 print(f"Encountered {response.status} when retrieving {href}")
                 return
-            with open(target, "w") as f:
+            with open(filepath, "w") as f:
                 f.write(await response.text())
     return True
 
@@ -73,6 +74,7 @@ async def main():
     links = await scrape_all_coach_links()
     for href in [link.strip() for link in links]:
         member_name = href[len("https://www.chess.com/member/") :]
+        os.makedirs(DATA_COACH_DIR.format(member_name=member_name), exist_ok=True)
         downloaded = await asyncio.gather(
             download_member_info(
                 member_name,
