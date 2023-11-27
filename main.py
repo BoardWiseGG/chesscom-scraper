@@ -13,14 +13,27 @@ DATA_COACH_DIR = "data/coach/{member_name}"
 DATA_COACH_FILE = "data/coach/{member_name}/{filename}"
 
 
+async def chesscom_requeset(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status != 200:
+                print(f"Encountered {response.status} when retrieving {url}.")
+                return response.text()
+    pass
+
+
 async def scrape_coach_links(page_no):
     """Scrape a single coach page listing."""
     links = []
-    href = f"https://www.chess.com/coaches?sortBy=alphabetical&page={page_no}"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(href) as response:
+    url = f"https://www.chess.com/coaches?sortBy=alphabetical&page={page_no}"
+    async with aiohttp.ClientSession(
+        headers={
+            "User-Agent": "BoardWise (https://github.com/BoardWiseGG/chesscom-scraper)",
+        }
+    ) as session:
+        async with session.get(url) as response:
             if response.status != 200:
-                print(f"Encountered {response.status} when retrieving {href}.")
+                print(f"Encountered {response.status} when retrieving {url}.")
                 return
             html = await response.text()
             soup = BeautifulSoup(html, "html.parser")
@@ -51,7 +64,7 @@ async def scrape_all_coach_links(max_pages=64):
     return links
 
 
-async def download_member_info(member_name, filename, href):
+async def download_member_info(member_name, filename, url):
     """Download member-specific content.
 
     @return: True if we downloaded content. False if the download already
@@ -61,9 +74,9 @@ async def download_member_info(member_name, filename, href):
     if os.path.isfile(filepath):
         return False
     async with aiohttp.ClientSession() as session:
-        async with session.get(href) as response:
+        async with session.get(url) as response:
             if response.status != 200:
-                print(f"Encountered {response.status} when retrieving {href}")
+                print(f"Encountered {response.status} when retrieving {url}")
                 return
             with open(filepath, "w") as f:
                 f.write(await response.text())
@@ -72,14 +85,14 @@ async def download_member_info(member_name, filename, href):
 
 async def main():
     links = await scrape_all_coach_links()
-    for href in [link.strip() for link in links]:
-        member_name = href[len("https://www.chess.com/member/") :]
+    for url in [link.strip() for link in links]:
+        member_name = url[len("https://www.chess.com/member/") :]
         os.makedirs(DATA_COACH_DIR.format(member_name=member_name), exist_ok=True)
         downloaded = await asyncio.gather(
             download_member_info(
                 member_name,
                 f"{member_name}.html",
-                href,
+                url,
             ),
             download_member_info(
                 member_name,
