@@ -23,7 +23,7 @@ async def scrape_coach_links(page_no):
                 return
             html = await response.text()
             soup = BeautifulSoup(html, "html.parser")
-            members = soup.find_all("a", class_="members-categories-blahblah")
+            members = soup.find_all("a", class_="members-categories-username")
             for member in members:
                 links.append(member.get("href"))
 
@@ -37,10 +37,10 @@ async def scrape_all_coach_links(max_pages=64):
         filepath = DATA_COACH_LIST.format(i)
         if os.path.isfile(filepath):
             with open(filepath, "r") as f:
-                links = f.readlines()
+                links.extend(f.readlines())
             print(f"{filepath} already exists.")
         else:
-            links = await scrape_coach_links(i)
+            links.extend(await scrape_coach_links(i))
             with open(filepath, "w") as f:
                 for link in links:
                     f.write(f"{link}\n")
