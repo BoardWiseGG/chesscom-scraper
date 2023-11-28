@@ -94,6 +94,9 @@ async def _scrape_all_coach_usernames(
             print(f"Skipping {ANSI_COLOR(filepath)}")
         except FileNotFoundError:
             page_usernames = await _scrape_page_coach_usernames(session, page_no)
+            if not page_usernames:
+                print(f"Could not write {ANSI_COLOR(filepath)}")
+                continue
             with open(filepath, "w") as f:
                 for username in page_usernames:
                     f.write(f"{username}\n")
