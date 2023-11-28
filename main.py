@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import aiohttp
 import argparse
 import asyncio
@@ -25,12 +23,12 @@ USER_AGENT = "BoardWise chesscom-scraper ({user_agent})"
 SLEEP_SECS = 3
 
 
-def ANSI_COLOR(s):
+def ANSI_COLOR(s: str):
     """Print colored output to the console."""
     return f"\033[0;34m{s}\033[0m"  # Blue
 
 
-async def chesscom_request(session, url):
+async def chesscom_request(session: aiohttp.ClientSession, url: str):
     """Convenience function for network requests to chess.com.
 
     @param session
@@ -46,7 +44,7 @@ async def chesscom_request(session, url):
         print(f"Encountered {response.status} when retrieving {url}.")
 
 
-async def _scrape_page_coach_usernames(session, page_no):
+async def _scrape_page_coach_usernames(session: aiohttp.ClientSession, page_no: int):
     """Scan through chess.com/coaches/?page=<n> for all coaches' usernames.
 
     @param session
@@ -73,7 +71,9 @@ async def _scrape_page_coach_usernames(session, page_no):
     return usernames
 
 
-async def _scrape_all_coach_usernames(session, max_pages=64):
+async def _scrape_all_coach_usernames(
+    session: aiohttp.ClientSession, max_pages: int = 64
+):
     """Scan through chess.com/coaches for all coaches' usernames.
 
     @param session
@@ -104,7 +104,9 @@ async def _scrape_all_coach_usernames(session, max_pages=64):
     return usernames
 
 
-async def _download_coach_file(session, url, username, filename):
+async def _download_coach_file(
+    session: aiohttp.ClientSession, url: str, username: str, filename: str
+):
     """Writes the contents of @url into `DATA_COACH_FILE`.
 
     @param session
@@ -129,7 +131,7 @@ async def _download_coach_file(session, url, username, filename):
     return True
 
 
-async def _download_coach_data(session, username):
+async def _download_coach_data(session: aiohttp.ClientSession, username: str):
     """Download coach-related data to the `DATA_COACH_DIR` directory.
 
     This sends three parallel requests for:
@@ -169,7 +171,7 @@ async def _download_coach_data(session, username):
         print(f"Skipping {ANSI_COLOR(username)}")
 
 
-async def main():
+async def scrape():
     parser = argparse.ArgumentParser(
         prog="chesscom-scraper",
         description="HTML scraping of chess.com coaches.",
@@ -191,5 +193,5 @@ async def main():
             await _download_coach_data(session, username)
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+def main():
+    asyncio.run(scrape())

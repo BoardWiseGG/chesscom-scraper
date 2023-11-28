@@ -1,3 +1,6 @@
+# Python bytecode.
+__pycache__/
+
 # Directory used by `direnv` to hold `use flake`-generated profiles.
 .direnv/
 

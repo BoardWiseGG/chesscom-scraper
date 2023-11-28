@@ -1,14 +1,17 @@
 [tool.poetry]
-name = "chesscom-scraper"
+name = "app"
 version = "0.1.0"
 description = ""
-authors = ["jrpotter2112@gmail.com"]
+authors = ["Joshua Potter <jrpotter2112@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
 beautifulsoup4 = "^4.12.2"
 aiohttp = "^3.8.6"
+
+[tool.poetry.group.dev.dependencies]
+types-beautifulsoup4 = "^4.12.0.7"
 
 [build-system]
 requires = ["poetry-core"]
