@@ -8,14 +8,10 @@ adjustments to this script appropriately rate-limit.
 ## Overview
 
 This is a simple web scraper for [chess.com](https://www.chess.com/coaches)
-coaches. Running:
-```bash
-$> python3 main.py --user-agent <your-email>
-```
-will query [chess.com](https://www.chess.com) for all listed coach usernames as
-well as specific information about each of corresponding coach (their profile,
-recent activity, and stats). The result will be found in a newly created `data`
-directory with the following structure:
+coaches. The program searches for all listed coaches as well as specific
+information about each of them (their profile, recent activity, and stats). The
+result will be found in a newly created `data` directory with the following
+structure:
 ```
 data
 ├── coach
@@ -29,12 +25,28 @@ data
     ├── ...
 ```
 
+## Usage
+
+If you have nix available, run:
+```bash
+$> nix build
+$> result/bin/app --user-agent <your-email>
+```
+If not, ensure you have [poetry](https://python-poetry.org/) on your machine and
+instead run the following:
+```bash
+$> poetry install
+$> source $(poetry env info --path)/bin/activate
+$> python3 -m app
+```
+
 ## Development
 
-This script was written using Python (version 3.11.6). Packaging and dependency
-management relies on [poetry](https://python-poetry.org/) (version 1.7.0).
-[direnv](https://direnv.net/) can be used to a launch a dev shell upon entering
-this directory (refer to `.envrc`). Otherwise run via:
+[nix](https://nixos.org/) is used for development. The included `flakes.nix`
+file automatically loads in Python (version 3.11.6) with packaging and
+dependency management handled by poetry (version 1.7.0). [direnv](https://direnv.net/)
+can be used to a launch a dev shell upon entering this directory (refer to
+`.envrc`). Otherwise run via:
 ```bash
 $> nix develop
 ```

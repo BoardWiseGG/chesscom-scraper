@@ -171,7 +171,7 @@ async def _download_coach_data(session: aiohttp.ClientSession, username: str):
         print(f"Skipping {ANSI_COLOR(username)}")
 
 
-async def scrape():
+async def _scrape():
     parser = argparse.ArgumentParser(
         prog="chesscom-scraper",
         description="HTML scraping of chess.com coaches.",
@@ -193,5 +193,5 @@ async def scrape():
             await _download_coach_data(session, username)
 
 
-def main():
-    asyncio.run(scrape())
+def run():
+    asyncio.run(_scrape())

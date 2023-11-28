@@ -68,6 +68,10 @@
             projectDir = ./.;
             overrides = poetry2nix-overrides;
             preferWheels = true;
+          } // {
+            # These attributes are passed to `buildPythonApplication`.
+            pname = "app";
+            version = "0.1.0";
           };
 
           default = self.packages.${system}.app;
