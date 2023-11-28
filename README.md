@@ -2,25 +2,25 @@
 
 **Caution! Be careful running this script.**
 
-We intentionally delay each request sent anywhere from 10 to 15 seconds. Make
-sure any adjustments to this script appropriately rate-limit.
+We intentionally delay each batch of requests by 3 seconds. Make sure any
+adjustments to this script appropriately rate-limit.
 
 ## Overview
 
 This is a simple web scraper for [chess.com](https://www.chess.com/coaches)
 coaches. Running:
 ```bash
-$> python3 main.py
+$> python3 main.py --user-agent <your-email>
 ```
-will query [chess.com](https://www.chess.com) for all listed coaches as well as
-specific information about each of them (their profile, recent activity, and
-stats). The result will be found in a newly created `data` directory with the
-following structure:
+will query [chess.com](https://www.chess.com) for all listed coach usernames as
+well as specific information about each of corresponding coach (their profile,
+recent activity, and stats). The result will be found in a newly created `data`
+directory with the following structure:
 ```
 data
 ├── coach
-│   ├── <member_name>
-│   │   ├── <member_name>.html
+│   ├── <username>
+│   │   ├── <username>.html
 │   │   ├── activity.json
 │   │   └── stats.json
 │   ├── ...
@@ -28,9 +28,6 @@ data
     ├── <n>.txt
     ├── ...
 ```
-
-Here, `member_name` corresponds to the name of the coach whereas `pages`
-contains a fragmented list of URLs to coach profiles.
 
 ## Development
 
