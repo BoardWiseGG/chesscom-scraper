@@ -124,7 +124,5 @@ class Scraper(BaseScraper):
 
     async def export(self, username: str) -> Export:
         """Transform coach-specific data into uniform format."""
-        export: Export = {
-            "fide_rapid": None,
-        }
+        export: Export = {}
         return export
