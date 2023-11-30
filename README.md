@@ -1,25 +1,29 @@
-# chesscom-scraper
+# coach-scraper
 
 **Caution! Be careful running this script.**
 
-We intentionally delay each batch of requests by 3 seconds. Make sure any
-adjustments to this script appropriately rate-limit.
+We intentionally delay each batch of requests. Make sure any adjustments to this
+script appropriately rate-limit.
 
 ## Overview
 
-This is a simple web scraper for [chess.com](https://www.chess.com/coaches)
-coaches. The program searches for all listed coaches as well as specific
-information about each of them (their profile, recent activity, and stats). The
-result will be found in a newly created `data` directory with the following
-structure:
+This is a simple web scraper for coaches listed on:
+
+* [chess.com](https://www.chess.com/coaches)
+* [lichess.org](https://www.lichess.org/coach)
+
+The program searches for coach usernames as well as specific information about
+each of them (their profile, recent activity, and stats). The result will be
+found in a newly created `data` directory with the following structure:
 ```
 data
-├── coach
-│   ├── <username>
-│   │   ├── <username>.html
-│   │   ├── activity.json
-│   │   └── stats.json
-│   ├── ...
+└── <site>
+│   ├── coaches
+│   │   ├── <username>
+│   │   │   ├── <username>.html
+│   │   │   ├── export.json
+│   │   │   └── ...
+│   │   ├── ...
 └── pages
     ├── <n>.txt
     ├── ...
