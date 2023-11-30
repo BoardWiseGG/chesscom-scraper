@@ -179,15 +179,12 @@ class Scraper(BaseScraper):
 
     async def export(self, username: str) -> Export:
         """Transform coach-specific data into uniform format."""
-        stat_export: Export = {}
+        export: Export = {}
+
         try:
             with open(self.path_coach_file(username, "stats.json"), "r") as f:
-                stat_export = self._load_stats_json(json.load(f))
+                export.update(self._load_stats_json(json.load(f)))
         except FileNotFoundError:
             pass
 
-        export: Export = {
-            "fide_rapid": None,
-        }
-        export.update(stat_export)
         return export
