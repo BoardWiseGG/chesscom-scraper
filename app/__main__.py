@@ -1,4 +1,48 @@
-from app import scraper
+import aiohttp
+import argparse
+import asyncio
+import enum
+
+from chesscom import Scraper as ChesscomScraper
+from lichess import Scraper as LichessScraper
+
+
+class Site(enum.Enum):
+    CHESSCOM = "chesscom"
+    LICHESS = "lichess"
+
+
+async def run():
+    parser = argparse.ArgumentParser(
+        prog="chesscom-scraper",
+        description="HTML scraping of chess.com coaches.",
+    )
+    parser.add_argument("-u", "--user-agent", required=True)
+    parser.add_argument(
+        "-s",
+        "--site",
+        required=True,
+        choices=[
+            Site.CHESSCOM.value,
+            Site.LICHESS.value,
+        ],
+    )
+    args = parser.parse_args()
+
+    async with aiohttp.ClientSession(
+        headers={"User-Agent": f"BoardWise coach-scraper ({args.user_agent})"}
+    ) as session:
+        if args.site == Site.CHESSCOM.value:
+            scraper = ChesscomScraper(session)
+        elif args.site == Site.LICHESS.value:
+            scraper = LichessScraper(session)
+
+        await scraper.scrape()
+
+
+def main():
+    asyncio.run(run())
+
 
 if __name__ == "__main__":
-    scraper.run()
+    main()
