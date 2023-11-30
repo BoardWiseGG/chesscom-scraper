@@ -3,7 +3,7 @@ import enum
 import json
 import os
 
-from typing import List, Union
+from typing import List, Tuple, Union
 from typing_extensions import TypedDict
 
 
@@ -12,12 +12,15 @@ class Site(enum.Enum):
     LICHESS = "lichess"
 
 
-Export = TypedDict(
-    "Export",
-    {
-        "fide_rapid": Union[int, None],
-    },
-)
+class AnsiColor(enum.Enum):
+    ERROR = "\033[0;31m"
+    INFO = "\033[0;34m"
+    DATA = "\033[0;36m"
+    RESET = "\033[0m"
+
+
+class Export(TypedDict, total=False):
+    fide_rapid: Union[int, None]
 
 
 class BaseScraper:
@@ -44,7 +47,7 @@ class BaseScraper:
         """Transform coach-specific data into uniform format."""
         raise NotImplementedError()
 
-    async def request(self, url: str) -> (Union[str, None], int):
+    async def request(self, url: str) -> Tuple[Union[str, None], int]:
         """Make network requests using the internal session.
 
         @param url
@@ -69,13 +72,20 @@ class BaseScraper:
         """
         os.makedirs(self.path_coaches_dir(), exist_ok=True)
         os.makedirs(self.path_pages_dir(), exist_ok=True)
-        usernames = self.download_usernames()
+        usernames = await self.download_usernames()
         for username in usernames:
             os.makedirs(self.path_coach_dir(username), exist_ok=True)
             await self.download_profile(username)
             export = await self.export(username)
             with open(self.path_coach_file(username, "export.json")) as f:
                 json.dump(export, f)
+            self.log(
+                [
+                    (AnsiColor.INFO, "INFO"),
+                    (None, ": Finished exporting "),
+                    (AnsiColor.DATA, username),
+                ]
+            )
 
     def path_coaches_dir(self):
         """The root directory for all coach-related downloads."""
@@ -95,4 +105,14 @@ class BaseScraper:
 
     def path_page_file(self, page_no: int):
         """The root directory for usernames scraped from a single page."""
-        return os.path.join(self.path_pages_dir(), str(page_no))
+        return os.path.join(self.path_pages_dir(), f"{page_no}.txt")
+
+    def log(self, msgs: List[Tuple[Union[AnsiColor, None], str]]):
+        transformed = []
+        for k, v in msgs:
+            if k is None:
+                transformed.append(v)
+            else:
+                transformed.append(f"{k.value}{v}{AnsiColor.RESET.value}")
+
+        print("".join(transformed))

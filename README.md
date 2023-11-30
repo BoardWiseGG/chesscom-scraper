@@ -29,15 +29,12 @@ data
 
 If you have nix available, run:
 ```bash
-$> nix build
-$> result/bin/app --user-agent <your-email>
+$> nix run . -- --user-agent <your-email> -s chesscom
 ```
 If not, ensure you have [poetry](https://python-poetry.org/) on your machine and
 instead run the following:
 ```bash
-$> poetry install
-$> source $(poetry env info --path)/bin/activate
-$> python3 -m app
+$> poetry run python3 -m app -u <your-email> -s chesscom
 ```
 
 ## Development

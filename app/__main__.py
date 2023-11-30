@@ -8,7 +8,7 @@ from app.scraper import Site
 
 async def run():
     parser = argparse.ArgumentParser(
-        prog="chesscom-scraper",
+        prog="coach-scraper",
         description="HTML scraping of chess.com coaches.",
     )
     parser.add_argument("-u", "--user-agent", required=True)

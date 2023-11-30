@@ -4,7 +4,7 @@ import json
 import os
 import os.path
 
-from app.scraper import BaseScraper, Export, Site
+from app.scraper import AnsiColor, BaseScraper, Export, Site
 from bs4 import BeautifulSoup
 from typing import List
 
@@ -19,7 +19,7 @@ SLEEP_SECS = 3
 
 
 class Scraper(BaseScraper):
-    def __init__(session: aiohttp.ClientSession):
+    def __init__(self, session: aiohttp.ClientSession):
         super().__init__(site=Site.CHESSCOM.value, session=session)
 
     async def download_usernames(self) -> List[str]:
@@ -34,15 +34,36 @@ class Scraper(BaseScraper):
             filepath = self.path_page_file(page_no)
             try:
                 with open(filepath, "r") as f:
+                    self.log(
+                        [
+                            (AnsiColor.INFO, "INFO"),
+                            (None, ": Reading file "),
+                            (AnsiColor.DATA, filepath),
+                        ]
+                    )
                     usernames.extend([line.strip() for line in f.readlines()])
             except FileNotFoundError:
                 page_usernames = await self._scrape_page(page_no)
                 if not page_usernames:
+                    self.log(
+                        [
+                            (AnsiColor.ERROR, "ERROR"),
+                            (None, ": Could not scrape page "),
+                            (AnsiColor.DATA, str(page_no)),
+                        ]
+                    )
                     continue
                 with open(filepath, "w") as f:
                     for username in page_usernames:
                         f.write(f"{username}\n")
                 usernames.extend(page_usernames)
+                self.log(
+                    [
+                        (AnsiColor.INFO, "INFO"),
+                        (None, ": Downloaded page "),
+                        (AnsiColor.DATA, filepath),
+                    ]
+                )
                 await asyncio.sleep(SLEEP_SECS)
 
         return usernames
@@ -57,8 +78,17 @@ class Scraper(BaseScraper):
             The list of scraped usernames on the specified coach listing page.
         """
         url = f"https://www.chess.com/coaches?sortBy=alphabetical&page={page_no}"
-        response, _unused_status = await self.request(url)
+        response, status_code = await self.request(url)
         if response is None:
+            self.log(
+                [
+                    (AnsiColor.ERROR, "ERROR"),
+                    (None, ": Received status "),
+                    (AnsiColor.DATA, f"{status_code} "),
+                    (None, "when downloading page "),
+                    (AnsiColor.DATA, str(page_no)),
+                ]
+            )
             return
 
         usernames = []
@@ -100,11 +130,24 @@ class Scraper(BaseScraper):
             ),
         )
         if any(used_network):
+            self.log(
+                [
+                    (AnsiColor.INFO, "INFO"),
+                    (None, ": Downloaded data for coach "),
+                    (AnsiColor.DATA, username),
+                ]
+            )
             await asyncio.sleep(SLEEP_SECS)
         else:
-            pass
+            self.log(
+                [
+                    (AnsiColor.INFO, "INFO"),
+                    (None, ": Skipping download for coach "),
+                    (AnsiColor.DATA, username),
+                ]
+            )
 
-    async def _download_coach_file(self, url: str, username: str, filename: str):
+    async def _download_profile_file(self, url: str, username: str, filename: str):
         """Writes the contents of url into the specified file.
 
         @param url
@@ -126,11 +169,9 @@ class Scraper(BaseScraper):
 
         return True
 
-    def _load_stats_json(self, stats: dict):
+    def _load_stats_json(self, stats: dict) -> Export:
         """Extract relevant fields from a `stats.json` file."""
-        export = {
-            "fide_rapid": None,
-        }
+        export: Export = {}
         for stat in stats.get("stats", []):
             if stat["key"] == "rapid":
                 export["fide_rapid"] = stat["stats"]["rating"]
@@ -138,13 +179,15 @@ class Scraper(BaseScraper):
 
     async def export(self, username: str) -> Export:
         """Transform coach-specific data into uniform format."""
-        stat_export = {}
+        stat_export: Export = {}
         try:
             with open(self.path_coach_file(username, "stats.json"), "r") as f:
                 stat_export = self._load_stats_json(json.load(f))
         except FileNotFoundError:
             pass
 
-        export = {}
+        export: Export = {
+            "fide_rapid": None,
+        }
         export.update(stat_export)
         return export
