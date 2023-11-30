@@ -3,6 +3,7 @@ import argparse
 import asyncio
 
 from app.chesscom import Scraper as ChesscomScraper
+from app.lichess import Scraper as LichessScraper
 from app.scraper import Site
 
 
@@ -18,6 +19,7 @@ async def run():
         required=True,
         choices=[
             Site.CHESSCOM.value,
+            Site.LICHESS.value,
         ],
     )
     args = parser.parse_args()
@@ -27,6 +29,8 @@ async def run():
     ) as session:
         if args.site == Site.CHESSCOM.value:
             scraper = ChesscomScraper(session)
+        elif args.site == Site.LICHESS.value:
+            scraper = LichessScraper(session)
 
         await scraper.scrape()
 
