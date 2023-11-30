@@ -1,15 +1,9 @@
 import aiohttp
 import argparse
 import asyncio
-import enum
 
-from chesscom import Scraper as ChesscomScraper
-from lichess import Scraper as LichessScraper
-
-
-class Site(enum.Enum):
-    CHESSCOM = "chesscom"
-    LICHESS = "lichess"
+from app.chesscom import Scraper as ChesscomScraper
+from app.scraper import Site
 
 
 async def run():
@@ -24,7 +18,6 @@ async def run():
         required=True,
         choices=[
             Site.CHESSCOM.value,
-            Site.LICHESS.value,
         ],
     )
     args = parser.parse_args()
@@ -34,8 +27,6 @@ async def run():
     ) as session:
         if args.site == Site.CHESSCOM.value:
             scraper = ChesscomScraper(session)
-        elif args.site == Site.LICHESS.value:
-            scraper = LichessScraper(session)
 
         await scraper.scrape()
 

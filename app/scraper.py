@@ -1,9 +1,15 @@
 import aiohttp
+import enum
 import json
 import os
 
 from typing import List, Union
 from typing_extensions import TypedDict
+
+
+class Site(enum.Enum):
+    CHESSCOM = "chesscom"
+    LICHESS = "lichess"
 
 
 Export = TypedDict(
@@ -14,7 +20,7 @@ Export = TypedDict(
 )
 
 
-class Scraper:
+class BaseScraper:
     def __init__(self, site: str, session: aiohttp.ClientSession):
         """Initialize a new web scraper and exporter.
 
@@ -35,7 +41,7 @@ class Scraper:
         raise NotImplementedError()
 
     async def export(self, username: str) -> Export:
-        """transform coach-specific data into uniform format."""
+        """Transform coach-specific data into uniform format."""
         raise NotImplementedError()
 
     async def request(self, url: str) -> (Union[str, None], int):
