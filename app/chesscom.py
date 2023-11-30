@@ -36,7 +36,7 @@ class Scraper(BaseScraper):
                 with open(filepath, "r") as f:
                     self.log(
                         [
-                            (AnsiColor.INFO, "INFO"),
+                            (AnsiColor.INFO, "[INFO]"),
                             (None, ": Reading file "),
                             (AnsiColor.DATA, filepath),
                         ]
@@ -47,7 +47,7 @@ class Scraper(BaseScraper):
                 if not page_usernames:
                     self.log(
                         [
-                            (AnsiColor.ERROR, "ERROR"),
+                            (AnsiColor.ERROR, "[ERROR]"),
                             (None, ": Could not scrape page "),
                             (AnsiColor.DATA, str(page_no)),
                         ]
@@ -59,7 +59,7 @@ class Scraper(BaseScraper):
                 usernames.extend(page_usernames)
                 self.log(
                     [
-                        (AnsiColor.INFO, "INFO"),
+                        (AnsiColor.INFO, "[INFO]"),
                         (None, ": Downloaded page "),
                         (AnsiColor.DATA, filepath),
                     ]
@@ -82,7 +82,7 @@ class Scraper(BaseScraper):
         if response is None:
             self.log(
                 [
-                    (AnsiColor.ERROR, "ERROR"),
+                    (AnsiColor.ERROR, "[ERROR]"),
                     (None, ": Received status "),
                     (AnsiColor.DATA, f"{status_code} "),
                     (None, "when downloading page "),
@@ -132,7 +132,7 @@ class Scraper(BaseScraper):
         if any(used_network):
             self.log(
                 [
-                    (AnsiColor.INFO, "INFO"),
+                    (AnsiColor.INFO, "[INFO]"),
                     (None, ": Downloaded data for coach "),
                     (AnsiColor.DATA, username),
                 ]
@@ -141,7 +141,7 @@ class Scraper(BaseScraper):
         else:
             self.log(
                 [
-                    (AnsiColor.INFO, "INFO"),
+                    (AnsiColor.INFO, "[INFO]"),
                     (None, ": Skipping download for coach "),
                     (AnsiColor.DATA, username),
                 ]

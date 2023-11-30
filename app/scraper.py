@@ -76,12 +76,13 @@ class BaseScraper:
         for username in usernames:
             os.makedirs(self.path_coach_dir(username), exist_ok=True)
             await self.download_profile(username)
+
             export = await self.export(username)
-            with open(self.path_coach_file(username, "export.json")) as f:
+            with open(self.path_coach_file(username, "export.json"), "w") as f:
                 json.dump(export, f)
             self.log(
                 [
-                    (AnsiColor.INFO, "INFO"),
+                    (AnsiColor.INFO, "[INFO]"),
                     (None, ": Finished exporting "),
                     (AnsiColor.DATA, username),
                 ]
@@ -89,7 +90,7 @@ class BaseScraper:
 
     def path_coaches_dir(self):
         """The root directory for all coach-related downloads."""
-        return os.path.join("data", self.site, "coach")
+        return os.path.join("data", self.site, "coaches")
 
     def path_coach_dir(self, username: str):
         """The root directory for a specific coach's downloads."""
