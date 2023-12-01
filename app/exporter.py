@@ -36,6 +36,8 @@ class BaseExporter(Repo):
         """Transform coach-specific data into uniform format."""
         export: Export = {}
 
+        _insert(export, "site", self.site)
+        _insert(export, "username", self.username)
         _insert(export, "rapid", self.export_rapid())
         _insert(export, "blitz", self.export_blitz())
         _insert(export, "bullet", self.export_bullet())

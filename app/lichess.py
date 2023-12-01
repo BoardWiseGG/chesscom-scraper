@@ -209,4 +209,7 @@ class Exporter(BaseExporter):
         if value[-1] == "?":
             value = value[:-1]
 
-        return value
+        try:
+            return int(value)
+        except ValueError:
+            return None

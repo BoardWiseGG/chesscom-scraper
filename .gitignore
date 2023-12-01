@@ -2,10 +2,13 @@
 __pycache__/
 
 # Directory used by `direnv` to hold `use flake`-generated profiles.
-.direnv/
+/.direnv/
 
 # A symlink produced by default when running `nix build`.
-result
+/result
 
 # The results of the `chess.com` coach scraping.
-data/
+/data/
+
+# The local database used when testing exports.
+/db/

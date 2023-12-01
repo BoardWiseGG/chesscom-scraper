@@ -33,12 +33,45 @@ data
 
 If you have nix available, run:
 ```bash
-$> nix run . -- --user-agent <your-email> -s chesscom
+$ nix run . -- --user-agent <your-email> -s chesscom
 ```
 If not, ensure you have [poetry](https://python-poetry.org/) on your machine and
 instead run the following:
 ```bash
-$> poetry run python3 -m app -u <your-email> -s chesscom
+$ poetry run python3 -m app -u <your-email> -s chesscom
+```
+
+## Database
+
+Included in the development shell of this flake is a [Postgres](https://www.postgresql.org/)
+client (version 15.5). Generate an empty Postgres cluster at `/db` by running
+```bash
+$ pg_ctl -D db init
+```
+To start the database, run the following:
+```bash
+$ pg_ctl -D db -l db/logfile -o --unix_socket_directories=@scraper start
+```
+In the above command, `@scraper` refers to an [abstract socket name](https://www.postgresql.org/docs/15/runtime-config-connection.html#GUC-UNIX-SOCKET-DIRECTORIES).
+Rename to whatever is appropriate for your use case. To then connect to this
+database instance, run:
+```bash
+$ psql -h @scraper
+```
+To later shut the database down, run:
+```bash
+$ pg_ctl -D db stop
+```
+
+To load all exported coach data into a local postgres instance, use the provided
+`sql/load_export.sql` file. First concatenate all exported content:
+```bash
+$ cat data/{chesscom,lichess}/export.json > data/export.json
+```
+Then (assuming your database cluster has been initialized at `@scraper`), you
+can run:
+```bash
+$ psql -h @scraper -f load_export.sql -v export="'$PWD/data/export.json'"
 ```
 
 ## Development
@@ -49,7 +82,7 @@ dependency management handled by poetry (version 1.7.0). [direnv](https://direnv
 can be used to a launch a dev shell upon entering this directory (refer to
 `.envrc`). Otherwise run via:
 ```bash
-$> nix develop
+$ nix develop
 ```
 
 ### Language Server
@@ -67,7 +100,7 @@ Formatting depends on the [black](https://black.readthedocs.io/en/stable/index.h
 (version 23.9.1) tool. A `pre-commit` hook is included in `.githooks` that can
 be used to format all `*.py` files prior to commit. Install via:
 ```bash
-$> git config --local core.hooksPath .githooks/
+$ git config --local core.hooksPath .githooks/
 ```
 If running [direnv](https://direnv.net/), this hook is installed automatically
 when entering the directory.

@@ -41,14 +41,15 @@ async def run():
             scraper = LichessScraper(session)
             exporter_cls = LichessExporter
 
-        dump = {}
-
+        # Write out each coach data into NDJSON file.
+        dump = []
         usernames = await scraper.scrape()
         for username in usernames:
-            dump[username] = exporter_cls(username).export()
+            export = exporter_cls(username).export()
+            dump.append(f"{json.dumps(export)}\n")
 
         with open(scraper.path_site_file("export.json"), "w") as f:
-            json.dump(dump, f, indent=2)
+            f.writelines(dump)
 
 
 def main():
