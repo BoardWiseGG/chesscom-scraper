@@ -4,8 +4,18 @@ from typing_extensions import TypedDict
 
 
 class Export(TypedDict, total=False):
-    # The coach's rapid rating as listed on the site they were sourced from.
+    # The coach's rapid rating relative to the site they were sourced from.
     rapid: int
+    # The coach's blitz rating relative to the site they were sourced from.
+    blitz: int
+    # The coach's bullet rating relative to the site they were sourced from.
+    bullet: int
+
+
+def _insert(export: Export, key: str, value: any):
+    if value is None:
+        return
+    export[key] = value
 
 
 class BaseExporter(Repo):
@@ -16,13 +26,19 @@ class BaseExporter(Repo):
     def export_rapid(self) -> Union[int, None]:
         raise NotImplementedError()
 
+    def export_blitz(self) -> Union[int, None]:
+        raise NotImplementedError()
+
+    def export_bullet(self) -> Union[int, None]:
+        raise NotImplementedError()
+
     def export(self) -> Export:
         """Transform coach-specific data into uniform format."""
         export: Export = {}
 
-        rapid = self.export_rapid()
-        if rapid:
-            export["rapid"] = rapid
+        _insert(export, "rapid", self.export_rapid())
+        _insert(export, "blitz", self.export_blitz())
+        _insert(export, "bullet", self.export_bullet())
 
         self.log(
             [

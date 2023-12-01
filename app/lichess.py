@@ -6,7 +6,7 @@ import os.path
 from app.repo import AnsiColor, Site
 from app.scraper import BaseScraper
 from app.exporter import BaseExporter
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
 from typing import List
 
 
@@ -163,6 +163,12 @@ class Scraper(BaseScraper):
         return True
 
 
+def _stats_filter(elem, attrs):
+    """Includes only relevant segments of the `stats.html` file."""
+    if "sub-ratings" in attrs.get("class", ""):
+        return True
+
+
 class Exporter(BaseExporter):
     def __init__(self, username: str):
         super().__init__(site=Site.LICHESS.value, username=username)
@@ -170,18 +176,30 @@ class Exporter(BaseExporter):
         self.stats_soup = None
         try:
             with open(self.path_coach_file(username, "stats.html"), "r") as f:
-                self.stats_soup = BeautifulSoup(f.read(), "html.parser")
+                stats_strainer = SoupStrainer(_stats_filter)
+                self.stats_soup = BeautifulSoup(
+                    f.read(), "html.parser", parse_only=stats_strainer
+                )
         except FileNotFoundError:
             pass
 
     def export_rapid(self):
+        return self._find_rating("rapid")
+
+    def export_blitz(self):
+        return self._find_rating("blitz")
+
+    def export_bullet(self):
+        return self._find_rating("bullet")
+
+    def _find_rating(self, name):
         if self.stats_soup is None:
             return None
 
-        rapid = self.stats_soup.find("a", href=f"/@/{self.username}/perf/rapid")
-        if rapid is None:
+        anchor = self.stats_soup.find("a", href=f"/@/{self.username}/perf/{name}")
+        if anchor is None:
             return None
-        rating = rapid.find("rating")
+        rating = anchor.find("rating")
         if rating is None:
             return None
         strong = rating.find("strong")

@@ -187,3 +187,9 @@ class Exporter(BaseExporter):
 
     def export_rapid(self) -> Union[int, None]:
         return self.stats_json.get("rapid", {}).get("rating")
+
+    def export_blitz(self) -> Union[int, None]:
+        return self.stats_json.get("lightning", {}).get("rating")
+
+    def export_bullet(self) -> Union[int, None]:
+        return self.stats_json.get("bullet", {}).get("rating")
