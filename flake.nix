@@ -1,12 +1,9 @@
 {
   description = ''
-    An opinionated poetry flake.
+    A web scraper for chess coaches. 
 
-    This flake has been adapted from the `app` template found in:
-    https://github.com/nix-community/poetry2nix
-
-    To generate a copy of this template elsewhere, run:
-    $> bootstrap poetry
+    To generate a copy of this template elsewhere, refer to:
+    https://github.com/jrpotter/bootstrap
   '';
 
   inputs = {
@@ -78,8 +75,9 @@
         };
 
         devShells.default = pkgs.mkShell {
-          packages = [
-            pkgs.poetry
+          packages = with pkgs; [
+            poetry
+            postgresql_15
           ] ++ (with pkgs.python311Packages; [
             black
             debugpy
