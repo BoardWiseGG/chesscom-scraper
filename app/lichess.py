@@ -94,7 +94,7 @@ class Scraper(BaseScraper):
             return
 
         usernames = []
-        soup = BeautifulSoup(response, "html.parser")
+        soup = BeautifulSoup(response, "lxml")
         members = soup.find_all("article", class_="coach-widget")
         for member in members:
             anchor = member.find("a", class_="overlay")
@@ -178,7 +178,7 @@ class Exporter(BaseExporter):
             with open(self.path_coach_file(username, "stats.html"), "r") as f:
                 stats_strainer = SoupStrainer(_stats_filter)
                 self.stats_soup = BeautifulSoup(
-                    f.read(), "html.parser", parse_only=stats_strainer
+                    f.read(), "lxml", parse_only=stats_strainer
                 )
         except FileNotFoundError:
             pass

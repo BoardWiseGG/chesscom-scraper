@@ -94,7 +94,7 @@ class Scraper(BaseScraper):
             return
 
         usernames = []
-        soup = BeautifulSoup(response, "html.parser")
+        soup = BeautifulSoup(response, "lxml")
         members = soup.find_all("a", class_="members-categories-username")
         for member in members:
             href = member.get("href")
