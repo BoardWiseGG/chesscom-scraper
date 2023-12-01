@@ -24,6 +24,7 @@ async def run():
         "-s",
         "--site",
         required=True,
+        action="append",
         choices=[
             Site.CHESSCOM.value,
             Site.LICHESS.value,
@@ -34,22 +35,25 @@ async def run():
     async with aiohttp.ClientSession(
         headers={"User-Agent": f"BoardWise coach-scraper ({args.user_agent})"}
     ) as session:
-        if args.site == Site.CHESSCOM.value:
-            scraper = ChesscomScraper(session)
-            exporter_cls = ChesscomExporter
-        elif args.site == Site.LICHESS.value:
-            scraper = LichessScraper(session)
-            exporter_cls = LichessExporter
+        for site in set(args.site):
+            scraper, exporter_cls = None, None
 
-        # Write out each coach data into NDJSON file.
-        dump = []
-        usernames = await scraper.scrape()
-        for username in usernames:
-            export = exporter_cls(username).export()
-            dump.append(f"{json.dumps(export)}\n")
+            if site == Site.CHESSCOM.value:
+                scraper = ChesscomScraper(session)
+                exporter_cls = ChesscomExporter
+            elif site == Site.LICHESS.value:
+                scraper = LichessScraper(session)
+                exporter_cls = LichessExporter
 
-        with open(scraper.path_site_file("export.json"), "w") as f:
-            f.writelines(dump)
+            # Write out each coach data into NDJSON file.
+            dump = []
+            usernames = await scraper.scrape()
+            for username in usernames:
+                export = exporter_cls(username).export()
+                dump.append(f"{json.dumps(export)}\n")
+
+            with open(scraper.path_site_file("export.json"), "w") as f:
+                f.writelines(dump)
 
 
 def main():

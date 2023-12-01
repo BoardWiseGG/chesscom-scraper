@@ -33,12 +33,12 @@ data
 
 If you have nix available, run:
 ```bash
-$ nix run . -- --user-agent <your-email> -s chesscom
+$ nix run . -- --user-agent <your-email> -s <site>
 ```
 If not, ensure you have [poetry](https://python-poetry.org/) on your machine and
 instead run the following:
 ```bash
-$ poetry run python3 -m app -u <your-email> -s chesscom
+$ poetry run python3 -m app -u <your-email> -s <site>
 ```
 
 ## Database
@@ -83,8 +83,7 @@ necessary to scrape coach data from our chess website and dump the results into
 the database in one fell swoop. Assuming our database is open with a socket
 connection available at `@scraper`:
 ```bash
-nix run . -- --user-agent <your-email> -s chesscom
-nix run . -- --user-agent <your-email> -s lichess
+nix run . -- --user-agent <your-email> -s chesscom -s lichess
 cat data/{chesscom,lichess}/export.json > data/export.json
 psql -h @scraper -f sql/load_export.sql -v export="'$PWD/data/export.json'"
 ```
