@@ -63,6 +63,8 @@ To later shut the database down, run:
 $ pg_ctl -D db stop
 ```
 
+### Loading Data
+
 To load all exported coach data into a local postgres instance, use the provided
 `sql/load_export.sql` file. First concatenate all exported content:
 ```bash
@@ -71,7 +73,20 @@ $ cat data/{chesscom,lichess}/export.json > data/export.json
 Then (assuming your database cluster has been initialized at `@scraper`), you
 can run:
 ```bash
-$ psql -h @scraper -f load_export.sql -v export="'$PWD/data/export.json'"
+$ psql -h @scraper -f sql/load_export.sql -v export="'$PWD/data/export.json'"
+```
+
+### E2E
+
+With the above section on loading files, we now have the individual components
+necessary to scrape coach data from our chess website and dump the results into
+the database in one fell swoop. Assuming our database is open with a socket
+connection available at `@scraper`:
+```bash
+nix run . -- --user-agent <your-email> -s chesscom
+nix run . -- --user-agent <your-email> -s lichess
+cat data/{chesscom,lichess}/export.json > data/export.json
+psql -h @scraper -f sql/load_export.sql -v export="'$PWD/data/export.json'"
 ```
 
 ## Development
