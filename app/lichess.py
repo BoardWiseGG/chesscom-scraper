@@ -3,7 +3,9 @@ import asyncio
 import os
 import os.path
 
-from app.scraper import AnsiColor, BaseScraper, Export, Site
+from app.repo import AnsiColor, Site
+from app.scraper import BaseScraper
+from app.exporter import BaseExporter
 from bs4 import BeautifulSoup
 from typing import List
 
@@ -111,7 +113,14 @@ class Scraper(BaseScraper):
         """
         filepath = self.path_coach_file(username, f"{username}.html")
         if os.path.isfile(filepath):
-            return False
+            self.log(
+                [
+                    (AnsiColor.INFO, "[INFO]"),
+                    (None, ": Skipping download for coach "),
+                    (AnsiColor.DATA, username),
+                ]
+            )
+            return
 
         response, _unused_status = await self.request(
             url=f"https://lichess.org/coach/{username}"
@@ -120,9 +129,18 @@ class Scraper(BaseScraper):
             with open(filepath, "w") as f:
                 f.write(response)
 
-        return True
+        self.log(
+            [
+                (AnsiColor.INFO, "[INFO]"),
+                (None, ": Downloaded data for coach "),
+                (AnsiColor.DATA, username),
+            ]
+        )
 
-    async def export(self, username: str) -> Export:
-        """Transform coach-specific data into uniform format."""
-        export: Export = {}
-        return export
+
+class Exporter(BaseExporter):
+    def __init__(self, username: str):
+        super().__init__(site=Site.LICHESS.value, username=username)
+
+    def export_fide_rapid(self):
+        return None

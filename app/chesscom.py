@@ -4,9 +4,11 @@ import json
 import os
 import os.path
 
-from app.scraper import AnsiColor, BaseScraper, Export, Site
+from app.repo import AnsiColor, Site
+from app.exporter import BaseExporter
+from app.scraper import BaseScraper
 from bs4 import BeautifulSoup
-from typing import List
+from typing import List, Union
 
 
 # The number of coach listing pages we will at most iterate through. This number
@@ -169,22 +171,19 @@ class Scraper(BaseScraper):
 
         return True
 
-    def _load_stats_json(self, stats: dict) -> Export:
-        """Extract relevant fields from a `stats.json` file."""
-        export: Export = {}
-        for stat in stats.get("stats", []):
-            if stat["key"] == "rapid":
-                export["fide_rapid"] = stat["stats"]["rating"]
-        return export
 
-    async def export(self, username: str) -> Export:
-        """Transform coach-specific data into uniform format."""
-        export: Export = {}
+class Exporter(BaseExporter):
+    def __init__(self, username: str):
+        super().__init__(site=Site.CHESSCOM.value, username=username)
 
+        self.stats_json = {}
         try:
             with open(self.path_coach_file(username, "stats.json"), "r") as f:
-                export.update(self._load_stats_json(json.load(f)))
+                for s in json.load(f).get("stats", []):
+                    if "key" in s and "stats" in s:
+                        self.stats_json[s["key"]] = s["stats"]
         except FileNotFoundError:
             pass
 
-        return export
+    def export_fide_rapid(self) -> Union[int, None]:
+        return self.stats_json.get("rapid", {}).get("rating")

@@ -1,38 +1,20 @@
 import aiohttp
-import enum
-import json
 import os
 
+from app.repo import Repo
 from typing import List, Tuple, Union
-from typing_extensions import TypedDict
 
 
-class Site(enum.Enum):
-    CHESSCOM = "chesscom"
-    LICHESS = "lichess"
-
-
-class AnsiColor(enum.Enum):
-    ERROR = "\033[0;31m"
-    INFO = "\033[0;34m"
-    DATA = "\033[0;36m"
-    RESET = "\033[0m"
-
-
-class Export(TypedDict, total=False):
-    fide_rapid: Union[int, None]
-
-
-class BaseScraper:
+class BaseScraper(Repo):
     def __init__(self, site: str, session: aiohttp.ClientSession):
-        """Initialize a new web scraper and exporter.
+        """Initialize a new web scraper.
 
         @param site:
             The site we are making requests out to.
         @param session:
             The `aiohttp.ClientSession` context our requests are made from.
         """
-        self.site = site
+        super().__init__(site)
         self.session = session
 
     async def download_usernames(self) -> List[str]:
@@ -41,10 +23,6 @@ class BaseScraper:
 
     async def download_profile(self, username: str):
         """For each coach, download coach-specific data."""
-        raise NotImplementedError()
-
-    async def export(self, username: str) -> Export:
-        """Transform coach-specific data into uniform format."""
         raise NotImplementedError()
 
     async def request(self, url: str) -> Tuple[Union[str, None], int]:
@@ -61,7 +39,7 @@ class BaseScraper:
                 return await response.text(), 200
         return None, response.status
 
-    async def scrape(self):
+    async def scrape(self) -> List[str]:
         """Main entrypoint for scraping and exporting downloaded content.
 
         A `Scraper` is structured to operates in the following stages:
@@ -77,43 +55,4 @@ class BaseScraper:
             os.makedirs(self.path_coach_dir(username), exist_ok=True)
             await self.download_profile(username)
 
-            export = await self.export(username)
-            with open(self.path_coach_file(username, "export.json"), "w") as f:
-                json.dump(export, f)
-            self.log(
-                [
-                    (AnsiColor.INFO, "[INFO]"),
-                    (None, ": Finished exporting "),
-                    (AnsiColor.DATA, username),
-                ]
-            )
-
-    def path_coaches_dir(self):
-        """The root directory for all coach-related downloads."""
-        return os.path.join("data", self.site, "coaches")
-
-    def path_coach_dir(self, username: str):
-        """The root directory for a specific coach's downloads."""
-        return os.path.join(self.path_coaches_dir(), username)
-
-    def path_coach_file(self, username: str, filename: str):
-        """Path to a coach-specific file download."""
-        return os.path.join(self.path_coach_dir(username), filename)
-
-    def path_pages_dir(self):
-        """The root directory for all username listing files."""
-        return os.path.join("data", self.site, "pages")
-
-    def path_page_file(self, page_no: int):
-        """The root directory for usernames scraped from a single page."""
-        return os.path.join(self.path_pages_dir(), f"{page_no}.txt")
-
-    def log(self, msgs: List[Tuple[Union[AnsiColor, None], str]]):
-        transformed = []
-        for k, v in msgs:
-            if k is None:
-                transformed.append(v)
-            else:
-                transformed.append(f"{k.value}{v}{AnsiColor.RESET.value}")
-
-        print("".join(transformed))
+        return usernames
