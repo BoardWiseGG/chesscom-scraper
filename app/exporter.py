@@ -1,6 +1,8 @@
-from app.repo import AnsiColor, Repo
 from typing import Union
+
 from typing_extensions import TypedDict
+
+from app.repo import AnsiColor, Repo
 
 
 class Export(TypedDict, total=False):

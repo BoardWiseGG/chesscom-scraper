@@ -1,14 +1,14 @@
-import aiohttp
 import asyncio
 import os
 import os.path
-
-from app.repo import AnsiColor, Site
-from app.scraper import BaseScraper
-from app.exporter import BaseExporter
-from bs4 import BeautifulSoup, SoupStrainer
 from typing import List
 
+import aiohttp
+from bs4 import BeautifulSoup, SoupStrainer
+
+from app.exporter import BaseExporter
+from app.repo import AnsiColor, Site
+from app.scraper import BaseScraper
 
 # The number of pages we will at most iterate through. This number was
 # determined by going to https://lichess.org/coach/all/all/alphabetical

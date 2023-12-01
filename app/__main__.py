@@ -1,16 +1,13 @@
-import aiohttp
 import argparse
 import asyncio
 import json
 
-from app.chesscom import (
-    Exporter as ChesscomExporter,
-    Scraper as ChesscomScraper,
-)
-from app.lichess import (
-    Exporter as LichessExporter,
-    Scraper as LichessScraper,
-)
+import aiohttp
+
+from app.chesscom import Exporter as ChesscomExporter
+from app.chesscom import Scraper as ChesscomScraper
+from app.lichess import Exporter as LichessExporter
+from app.lichess import Scraper as LichessScraper
 from app.repo import Site
 
 

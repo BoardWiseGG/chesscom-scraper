@@ -1,15 +1,15 @@
-import aiohttp
 import asyncio
 import json
 import os
 import os.path
-
-from app.repo import AnsiColor, Site
-from app.exporter import BaseExporter
-from app.scraper import BaseScraper
-from bs4 import BeautifulSoup
 from typing import List, Union
 
+import aiohttp
+from bs4 import BeautifulSoup
+
+from app.exporter import BaseExporter
+from app.repo import AnsiColor, Site
+from app.scraper import BaseScraper
 
 # The number of coach listing pages we will at most iterate through. This number
 # was determined by going to chess.com/coaches?sortBy=alphabetical&page=1 and

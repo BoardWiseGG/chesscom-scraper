@@ -1,8 +1,9 @@
-import aiohttp
 import os
+from typing import List, Tuple, Union
+
+import aiohttp
 
 from app.repo import Repo
-from typing import List, Tuple, Union
 
 
 class BaseScraper(Repo):

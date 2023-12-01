@@ -103,10 +103,14 @@ $ nix develop
 
 The [python-lsp-server](https://github.com/python-lsp/python-lsp-server)
 (version v1.9.0) is included in this flake, along with the [python-lsp-black](https://github.com/python-lsp/python-lsp-black)
-plugin for formatting purposes. `pylsp` is expected to be configured to use
-[McCabe](https://github.com/PyCQA/mccabe), [pycodestyle](https://pycodestyle.pycqa.org/en/latest/),
-and [pyflakes](https://github.com/PyCQA/pyflakes). Refer to your editor for
-configuration details.
+and [pyls-isort](https://github.com/paradoxxxzero/pyls-isort) plugins.
+Additionally, `pylsp` is expected to be configured to use:
+
+* [McCabe](https://github.com/PyCQA/mccabe),
+* [pycodestyle](https://pycodestyle.pycqa.org/en/latest/), and
+* [pyflakes](https://github.com/PyCQA/pyflakes).
+
+Refer to your editor for configuration details.
 
 ### Formatting
 

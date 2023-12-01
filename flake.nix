@@ -85,6 +85,7 @@
             mypy
             pycodestyle
             pyflakes
+            pyls-isort
             python-lsp-black
             python-lsp-server
           ]);
