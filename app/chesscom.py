@@ -185,5 +185,5 @@ class Exporter(BaseExporter):
         except FileNotFoundError:
             pass
 
-    def export_fide_rapid(self) -> Union[int, None]:
+    def export_rapid(self) -> Union[int, None]:
         return self.stats_json.get("rapid", {}).get("rating")

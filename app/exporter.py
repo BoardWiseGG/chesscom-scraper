@@ -4,7 +4,8 @@ from typing_extensions import TypedDict
 
 
 class Export(TypedDict, total=False):
-    fide_rapid: int
+    # The coach's rapid rating as listed on the site they were sourced from.
+    rapid: int
 
 
 class BaseExporter(Repo):
@@ -12,16 +13,16 @@ class BaseExporter(Repo):
         super().__init__(site)
         self.username = username
 
-    def export_fide_rapid(self) -> Union[int, None]:
+    def export_rapid(self) -> Union[int, None]:
         raise NotImplementedError()
 
     def export(self) -> Export:
         """Transform coach-specific data into uniform format."""
         export: Export = {}
 
-        fide_rapid = self.export_fide_rapid()
-        if fide_rapid:
-            export["fide_rapid"] = fide_rapid
+        rapid = self.export_rapid()
+        if rapid:
+            export["rapid"] = rapid
 
         self.log(
             [

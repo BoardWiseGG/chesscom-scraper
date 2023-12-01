@@ -111,8 +111,27 @@ class Scraper(BaseScraper):
         @param username
             The coach username corresponding to the downloaded files.
         """
-        filepath = self.path_coach_file(username, f"{username}.html")
-        if os.path.isfile(filepath):
+        used_network1 = await self._download_profile_file(
+            url=f"https://lichess.org/coach/{username}",
+            username=username,
+            filename=self.path_coach_file(username, f"{username}.html"),
+        )
+        used_network2 = await self._download_profile_file(
+            url=f"https://lichess.org/@/{username}",
+            username=username,
+            filename=self.path_coach_file(username, "stats.html"),
+        )
+
+        if any([used_network1, used_network2]):
+            self.log(
+                [
+                    (AnsiColor.INFO, "[INFO]"),
+                    (None, ": Downloaded data for coach "),
+                    (AnsiColor.DATA, username),
+                ]
+            )
+            await asyncio.sleep(SLEEP_SECS)
+        else:
             self.log(
                 [
                     (AnsiColor.INFO, "[INFO]"),
@@ -120,27 +139,56 @@ class Scraper(BaseScraper):
                     (AnsiColor.DATA, username),
                 ]
             )
-            return
 
-        response, _unused_status = await self.request(
-            url=f"https://lichess.org/coach/{username}"
-        )
+    async def _download_profile_file(self, url: str, username: str, filename: str):
+        """Writes the contents of url into the specified file.
+
+        @param url
+            The URL of the file to download.
+        @param username
+            The coach username corresponding to the downloaded file.
+        @param filename
+            The output file to write the downloaded content to.
+        @return:
+            True if we make a network request. False otherwise.
+        """
+        if os.path.isfile(filename):
+            return False
+
+        response, _unused_status = await self.request(url)
         if response is not None:
-            with open(filepath, "w") as f:
+            with open(filename, "w") as f:
                 f.write(response)
 
-        self.log(
-            [
-                (AnsiColor.INFO, "[INFO]"),
-                (None, ": Downloaded data for coach "),
-                (AnsiColor.DATA, username),
-            ]
-        )
+        return True
 
 
 class Exporter(BaseExporter):
     def __init__(self, username: str):
         super().__init__(site=Site.LICHESS.value, username=username)
 
-    def export_fide_rapid(self):
-        return None
+        self.stats_soup = None
+        try:
+            with open(self.path_coach_file(username, "stats.html"), "r") as f:
+                self.stats_soup = BeautifulSoup(f.read(), "html.parser")
+        except FileNotFoundError:
+            pass
+
+    def export_rapid(self):
+        if self.stats_soup is None:
+            return None
+
+        rapid = self.stats_soup.find("a", href=f"/@/{self.username}/perf/rapid")
+        if rapid is None:
+            return None
+        rating = rapid.find("rating")
+        if rating is None:
+            return None
+        strong = rating.find("strong")
+        if strong is None:
+            return None
+        value = strong.get_text()
+        if value[-1] == "?":
+            value = value[:-1]
+
+        return value
