@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
 set -e
 
-FORMAT_FILES=$(
-  git --no-pager diff --name-status --no-color --cached | \
-    awk '$1 != "D" && $2 ~ /\.py$/ {print $NF}'
+STAGED=$(
+  git --no-pager diff --name-only --no-color --cached --diff-filter=d |
+    # Remove quotations used to surrounding filenames with special characters.
+    sed -e "s/^\"//" -e "s/\"$//g"
 )
 
-if [ -n "$FORMAT_FILES" ]; then
-  black --quiet "$FORMAT_FILES"
-  git add "$FORMAT_FILES"
+TARGETS=()
+while IFS= read -r FILENAME
+do
+  if [[ "$FILENAME" =~ .*\.py ]]; then
+    TARGETS+=("${FILENAME}")
+  fi
+done <<< "$STAGED"
+
+if (( ${#TARGETS[@]} )); then
+  black --quiet "${TARGETS[@]}"
+  git add "${TARGETS[@]}"
 fi
