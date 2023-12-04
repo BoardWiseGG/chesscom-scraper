@@ -2,8 +2,8 @@ CREATE SCHEMA IF NOT EXISTS coach_scraper;
 
 CREATE TABLE IF NOT EXISTS coach_scraper.export
   ( id SERIAL PRIMARY KEY
-  , username VARCHAR(255) NOT NULL
   , site VARCHAR(16) NOT NULL
+  , username VARCHAR(255) NOT NULL
   , rapid INT
   , blitz INT
   , bullet INT
