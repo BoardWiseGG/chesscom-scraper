@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import csv
 import json
 
 import aiohttp
@@ -32,25 +33,34 @@ async def run():
     async with aiohttp.ClientSession(
         headers={"User-Agent": f"BoardWise coach-scraper ({args.user_agent})"}
     ) as session:
-        for site in set(args.site):
-            scraper, exporter_cls = None, None
+        with open("data/export.csv", "w") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+            for site in set(args.site):
+                scraper, exporter_cls = None, None
 
-            if site == Site.CHESSCOM.value:
-                scraper = ChesscomScraper(session)
-                exporter_cls = ChesscomExporter
-            elif site == Site.LICHESS.value:
-                scraper = LichessScraper(session)
-                exporter_cls = LichessExporter
+                if site == Site.CHESSCOM.value:
+                    scraper = ChesscomScraper(session)
+                    exporter_cls = ChesscomExporter
+                elif site == Site.LICHESS.value:
+                    scraper = LichessScraper(session)
+                    exporter_cls = LichessExporter
 
-            # Write out each coach data into NDJSON file.
-            dump = []
-            usernames = await scraper.scrape()
-            for username in usernames:
-                export = exporter_cls(username).export()
-                dump.append(f"{json.dumps(export)}\n")
-
-            with open(scraper.path_site_file("export.json"), "w") as f:
-                f.writelines(dump)
+                usernames = await scraper.scrape()
+                for username in usernames:
+                    export = exporter_cls(username).export()
+                    writer.writerow(
+                        [
+                            # This should match the order data is loaded in the
+                            # sql/export.sql script.
+                            export["site"],
+                            export["username"],
+                            export.get("name", ""),
+                            export.get("image_url", ""),
+                            export.get("rapid", ""),
+                            export.get("blitz", ""),
+                            export.get("bullet", ""),
+                        ]
+                    )
 
 
 def main():

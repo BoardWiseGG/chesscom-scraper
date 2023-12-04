@@ -29,17 +29,19 @@ data
     ├── ...
 ```
 
-## Usage
+## Quickstart
 
 If you have nix available, run:
 ```bash
-$ nix run . -- --user-agent <your-email> -s <site>
+$ nix run . -- --user-agent <your-email> -s <site> [-s <site> ...]
 ```
 If not, ensure you have [poetry](https://python-poetry.org/) on your machine and
 instead run the following:
 ```bash
-$ poetry run python3 -m app -u <your-email> -s <site>
+$ poetry run python3 -m app -u <your-email> -s <site> [-s <site> ...]
 ```
+After running (this may take several hours), a new CSV will be generated at
+`data/export.csv` containing all scraped content from the specified `<site>`s.
 
 ## Database
 
@@ -70,13 +72,16 @@ To load all exported coach data into a local Postgres instance, use the provided
 ```bash
 $ psql -h @scraper -f sql/init.sql
 ```
-Next, concatenate all exported content and dump into the newly created table:
+Next, dump exported data into the newly created table:
 ```bash
-$ cat data/{chesscom,lichess}/export.json > data/export.json
-$ psql -h @scraper -f sql/export.sql -v export="'$PWD/data/export.json'"
+$ psql -h @scraper -f sql/export.sql -v export="'$PWD/data/export.csv'"
 ```
-Re-running will automatically create backups and replace the coach data found
-in `coach_scraper.export`.
+Re-running the `sql/export.sql` script will create a backup of the
+`coach_scraper.export` table. It will then upsert the scraped data. You can view
+all backups from the `psql` console like so:
+```
+postgres=# \dt coach_scraper.export*
+```
 
 ### E2E
 
@@ -85,10 +90,8 @@ necessary to scrape coach data from our chess website and dump the results into
 the database in one fell swoop. Assuming our database is open with a socket
 connection available at `@scraper`:
 ```bash
-nix run . -- --user-agent <your-email> -s chesscom -s lichess
-cat data/{chesscom,lichess}/export.json > data/export.json
-psql -h @scraper -f sql/init.sql
-psql -h @scraper -f sql/export.sql -v export="'$PWD/data/export.json'"
+$ nix run . -- --user-agent <your-email> -s chesscom -s lichess
+$ psql -h @scraper -f sql/init.sql -f sql/export.sql -v export="'$PWD/data/export.csv'"
 ```
 
 ## Development

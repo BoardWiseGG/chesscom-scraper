@@ -1,7 +1,7 @@
 import asyncio
 import os
 import os.path
-from typing import List
+from typing import List, Union
 
 import aiohttp
 from bs4 import BeautifulSoup, SoupStrainer
@@ -97,9 +97,9 @@ class Scraper(BaseScraper):
         soup = BeautifulSoup(response, "lxml")
         members = soup.find_all("article", class_="coach-widget")
         for member in members:
-            anchor = member.find("a", class_="overlay")
-            if anchor:
-                href = anchor.get("href")
+            a = member.find("a", class_="overlay")
+            if a:
+                href = a.get("href")
                 username = href[len("/coach/") :]
                 usernames.append(username)
 
@@ -163,8 +163,16 @@ class Scraper(BaseScraper):
         return True
 
 
+def _profile_filter(elem, attrs):
+    """Includes only relevant segments of the `{username}.html` file."""
+    if "coach-widget" in attrs.get("class", ""):
+        return True
+
+
 def _stats_filter(elem, attrs):
     """Includes only relevant segments of the `stats.html` file."""
+    if "profile-side" in attrs.get("class", ""):
+        return True
     if "sub-ratings" in attrs.get("class", ""):
         return True
 
@@ -173,43 +181,59 @@ class Exporter(BaseExporter):
     def __init__(self, username: str):
         super().__init__(site=Site.LICHESS.value, username=username)
 
-        self.stats_soup = None
+        self.profile_soup = None
         try:
-            with open(self.path_coach_file(username, "stats.html"), "r") as f:
-                stats_strainer = SoupStrainer(_stats_filter)
-                self.stats_soup = BeautifulSoup(
-                    f.read(), "lxml", parse_only=stats_strainer
+            with open(self.path_coach_file(username, f"{username}.html"), "r") as f:
+                self.profile_soup = BeautifulSoup(
+                    f.read(), "lxml", parse_only=SoupStrainer(_profile_filter)
                 )
         except FileNotFoundError:
             pass
 
-    def export_rapid(self):
+        self.stats_soup = None
+        try:
+            with open(self.path_coach_file(username, "stats.html"), "r") as f:
+                self.stats_soup = BeautifulSoup(
+                    f.read(), "lxml", parse_only=SoupStrainer(_stats_filter)
+                )
+        except FileNotFoundError:
+            pass
+
+    def export_name(self) -> Union[str, None]:
+        try:
+            profile_side = self.stats_soup.find("div", class_="profile-side")
+            user_infos = profile_side.find("div", class_="user-infos")
+            name = user_infos.find("strong", class_="name")
+            return name.get_text().strip()
+        except AttributeError:
+            return None
+
+    def export_image_url(self) -> Union[str, None]:
+        try:
+            picture = self.profile_soup.find("img", class_="picture")
+            src = picture.get("src", "")
+            if "image.lichess1.org" in src:
+                return src
+        except AttributeError:
+            return None
+
+    def export_rapid(self) -> Union[int, None]:
         return self._find_rating("rapid")
 
-    def export_blitz(self):
+    def export_blitz(self) -> Union[int, None]:
         return self._find_rating("blitz")
 
-    def export_bullet(self):
+    def export_bullet(self) -> Union[int, None]:
         return self._find_rating("bullet")
 
-    def _find_rating(self, name):
-        if self.stats_soup is None:
-            return None
-
-        anchor = self.stats_soup.find("a", href=f"/@/{self.username}/perf/{name}")
-        if anchor is None:
-            return None
-        rating = anchor.find("rating")
-        if rating is None:
-            return None
-        strong = rating.find("strong")
-        if strong is None:
-            return None
-        value = strong.get_text()
-        if value[-1] == "?":
-            value = value[:-1]
-
+    def _find_rating(self, name) -> Union[int, None]:
         try:
+            a = self.stats_soup.find("a", href=f"/@/{self.username}/perf/{name}")
+            rating = a.find("rating")
+            strong = rating.find("strong")
+            value = strong.get_text()
+            if value[-1] == "?":
+                value = value[:-1]
             return int(value)
-        except ValueError:
+        except (AttributeError, ValueError):
             return None

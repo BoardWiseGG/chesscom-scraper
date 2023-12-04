@@ -7,31 +7,47 @@ DO $$
   END;
 $$ LANGUAGE plpgsql;
 
-CREATE TEMPORARY TABLE pg_temp.coach_scraper_export (data JSONB);
+-- This should match the order data is written in the app/__main__.py
+-- script.
+CREATE TEMPORARY TABLE pg_temp.coach_scraper_export
+  ( site TEXT
+  , username TEXT
+  , name TEXT
+  , image_url TEXT
+  , rapid TEXT
+  , blitz TEXT
+  , bullet TEXT
+  );
 
 SELECT format(
-  $$COPY pg_temp.coach_scraper_export (data) from %L$$,
+  $$COPY pg_temp.coach_scraper_export FROM %L WITH (FORMAT CSV)$$,
   :export
 ) \gexec
 
 INSERT INTO coach_scraper.export
-  ( username
-  , site
+  ( site
+  , username
+  , name
+  , image_url
   , rapid
   , blitz
   , bullet
   )
 SELECT
-  data->>'username',
-  data->>'site',
-  (data->>'rapid')::INT,
-  (data->>'blitz')::INT,
-  (data->>'bullet')::INT
+  site,
+  username,
+  name,
+  image_url,
+  rapid::INT,
+  blitz::INT,
+  bullet::INT
 FROM
   pg_temp.coach_scraper_export
 ON CONFLICT
   (site, username)
 DO UPDATE SET
+  name = EXCLUDED.name,
+  image_url = EXCLUDED.image_url,
   rapid = EXCLUDED.rapid,
   blitz = EXCLUDED.blitz,
   bullet = EXCLUDED.bullet;

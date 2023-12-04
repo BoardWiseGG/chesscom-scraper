@@ -5,7 +5,7 @@ import os.path
 from typing import List, Union
 
 import aiohttp
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
 
 from app.exporter import BaseExporter
 from app.repo import AnsiColor, Site
@@ -172,9 +172,26 @@ class Scraper(BaseScraper):
         return True
 
 
+def _profile_filter(elem, attrs):
+    """Includes only relevant segments of the `{username}.html` file."""
+    if "profile-header-info" in attrs.get("class", ""):
+        return True
+    if "profile-card-info" in attrs.get("class", ""):
+        return True
+
+
 class Exporter(BaseExporter):
     def __init__(self, username: str):
         super().__init__(site=Site.CHESSCOM.value, username=username)
+
+        self.profile_soup = None
+        try:
+            with open(self.path_coach_file(username, f"{username}.html"), "r") as f:
+                self.profile_soup = BeautifulSoup(
+                    f.read(), "lxml", parse_only=SoupStrainer(_profile_filter)
+                )
+        except FileNotFoundError:
+            pass
 
         self.stats_json = {}
         try:
@@ -184,6 +201,22 @@ class Exporter(BaseExporter):
                         self.stats_json[s["key"]] = s["stats"]
         except FileNotFoundError:
             pass
+
+    def export_name(self) -> Union[str, None]:
+        try:
+            name = self.profile_soup.find("div", class_="profile-card-name")
+            return name.get_text().strip()
+        except AttributeError:
+            return None
+
+    def export_image_url(self) -> Union[str, None]:
+        try:
+            div = self.profile_soup.find("div", class_="profile-header-avatar")
+            src = div.find("img").get("src", "")
+            if "images.chesscomfiles.com" in src:
+                return src
+        except AttributeError:
+            return None
 
     def export_rapid(self) -> Union[int, None]:
         return self.stats_json.get("rapid", {}).get("rating")
