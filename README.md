@@ -65,16 +65,18 @@ $ pg_ctl -D db stop
 
 ### Loading Data
 
-To load all exported coach data into a local postgres instance, use the provided
-`sql/load_export.sql` file. First concatenate all exported content:
+To load all exported coach data into a local Postgres instance, use the provided
+`sql/*.sql` files. First initialize the export schema/table:
+```bash
+$ psql -h @scraper -f sql/init.sql
+```
+Next, concatenate all exported content and dump into the newly created table:
 ```bash
 $ cat data/{chesscom,lichess}/export.json > data/export.json
+$ psql -h @scraper -f sql/export.sql -v export="'$PWD/data/export.json'"
 ```
-Then (assuming your database cluster has been initialized at `@scraper`), you
-can run:
-```bash
-$ psql -h @scraper -f sql/load_export.sql -v export="'$PWD/data/export.json'"
-```
+Re-running will automatically create backups and replace the coach data found
+in `coach_scraper.export`.
 
 ### E2E
 
@@ -85,7 +87,8 @@ connection available at `@scraper`:
 ```bash
 nix run . -- --user-agent <your-email> -s chesscom -s lichess
 cat data/{chesscom,lichess}/export.json > data/export.json
-psql -h @scraper -f sql/load_export.sql -v export="'$PWD/data/export.json'"
+psql -h @scraper -f sql/init.sql
+psql -h @scraper -f sql/export.sql -v export="'$PWD/data/export.json'"
 ```
 
 ## Development
