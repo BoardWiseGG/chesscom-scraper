@@ -6,7 +6,7 @@ import aiohttp
 import psycopg2
 
 from app.chesscom import Pipeline as ChesscomPipeline
-from app.database import backup_database
+from app.database import backup_database, load_languages
 from app.lichess import Pipeline as LichessPipeline
 from app.types import Site
 
@@ -68,6 +68,7 @@ def main():
             port=args.port,
         )
         backup_database(conn)
+        load_languages(conn)
         asyncio.run(
             _entrypoint(
                 conn=conn,

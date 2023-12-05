@@ -4,10 +4,11 @@ from typing import List, Literal
 
 from typing_extensions import TypedDict
 
-from app.types import Site
+from app.types import Site, code_to_lang
 
 SCHEMA_NAME = "coach_scraper"
-TABLE_NAME = "export"
+MAIN_TABLE_NAME = "export"
+LANG_TABLE_NAME = "languages"
 
 
 RowKey = (
@@ -46,6 +47,31 @@ class Row(TypedDict, total=False):
     bullet: int
 
 
+def load_languages(conn):
+    """Load all known languages into the languages table."""
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        for code, name in code_to_lang.items():
+            cursor.execute(
+                f"""
+                INSERT INTO {SCHEMA_NAME}.{LANG_TABLE_NAME}
+                  (code, name)
+                VALUES
+                  (%s, %s)
+                ON CONFLICT
+                  (code)
+                DO UPDATE SET
+                  name = EXCLUDED.name;
+                """,
+                [code, name],
+            )
+        conn.commit()
+    finally:
+        if cursor:
+            cursor.close()
+
+
 def backup_database(conn):
     """Creates a backup of the export table.
 
@@ -55,27 +81,28 @@ def backup_database(conn):
     cursor = None
     try:
         cursor = conn.cursor()
-        cursor.execute(
-            f"""
-            SELECT 1
-            FROM information_schema.tables
-            WHERE table_schema = '{SCHEMA_NAME}'
-            AND table_name = '{TABLE_NAME}';
-            """
-        )
-
-        result = cursor.fetchone()
-        if result is None:
-            print(f"Missing `{SCHEMA_NAME}.{TABLE_NAME}` table.", file=sys.stderr)
-            sys.exit(1)
-
         timestamp = int((datetime.now() - datetime(1970, 1, 1)).total_seconds())
-        cursor.execute(
-            f"""
-            CREATE TABLE {SCHEMA_NAME}.{TABLE_NAME}_{timestamp}
-            AS TABLE {SCHEMA_NAME}.{TABLE_NAME}
-            """
-        )
+        for table_name in [MAIN_TABLE_NAME, LANG_TABLE_NAME]:
+            cursor.execute(
+                f"""
+                SELECT 1
+                FROM information_schema.tables
+                WHERE table_schema = '{SCHEMA_NAME}'
+                AND table_name = '{table_name}';
+                """
+            )
+
+            result = cursor.fetchone()
+            if result is None:
+                print(f"Missing `{SCHEMA_NAME}.{table_name}` table.", file=sys.stderr)
+                sys.exit(1)
+
+            cursor.execute(
+                f"""
+                CREATE TABLE {SCHEMA_NAME}.{table_name}_{timestamp}
+                AS TABLE {SCHEMA_NAME}.{table_name}
+                """
+            )
     finally:
         if cursor:
             cursor.close()
@@ -88,7 +115,7 @@ def upsert_row(conn, row: Row):
         cursor = conn.cursor()
         cursor.execute(
             f"""
-            INSERT INTO {SCHEMA_NAME}.{TABLE_NAME}
+            INSERT INTO {SCHEMA_NAME}.{MAIN_TABLE_NAME}
               ( site
               , username
               , name
