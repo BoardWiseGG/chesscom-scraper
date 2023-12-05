@@ -63,10 +63,6 @@ class Fetcher:
                 return await response.text(), 200
         return None, response.status
 
-    async def _scrape_usernames(self, page_no: int) -> Union[List[str], None]:
-        print(f"INFO: Scraping page {page_no} of {self.site.value}")
-        await self.scrape_usernames(page_no)
-
     async def scrape_usernames(self, page_no: int) -> Union[List[str], None]:
         """Source the specified site for all coach usernames.
 
@@ -177,7 +173,7 @@ class Pipeline:
         page_no = 1
         usernames = [None]
         while len(usernames):
-            usernames = await fetcher._scrape_usernames(page_no)
+            usernames = await fetcher.scrape_usernames(page_no)
             page_no += 1
             if usernames is None:
                 usernames = [None]

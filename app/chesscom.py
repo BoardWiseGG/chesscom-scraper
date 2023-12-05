@@ -29,6 +29,8 @@ class Fetcher(BaseFetcher):
         if page_no > MAX_PAGES:
             return []
 
+        print(f"{self.site.value}: Scraping page {page_no}/{MAX_PAGES}")
+
         filepath = self.path_page_file(page_no)
         try:
             with open(filepath, "r") as f:
