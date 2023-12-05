@@ -1,10 +1,24 @@
 import sys
 from datetime import datetime
+from typing import Literal
 
 from typing_extensions import TypedDict
 
+from app.site import Site
+
 SCHEMA_NAME = "coach_scraper"
 TABLE_NAME = "export"
+
+
+RowKey = (
+    Literal["site"]
+    | Literal["username"]
+    | Literal["name"]
+    | Literal["image_url"]
+    | Literal["rapid"]
+    | Literal["blitz"]
+    | Literal["bullet"]
+)
 
 
 class Row(TypedDict, total=False):
@@ -14,7 +28,7 @@ class Row(TypedDict, total=False):
     """
 
     # Website the given coach was sourced from.
-    site: str
+    site: Site
     # Username used on the source site.
     username: str
     # Real name.
@@ -110,4 +124,5 @@ def upsert_row(conn, row: Row):
         )
         conn.commit()
     finally:
-        cursor.close()
+        if cursor:
+            cursor.close()

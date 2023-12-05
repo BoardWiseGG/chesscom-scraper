@@ -1,16 +1,11 @@
 import asyncio
-import enum
 import os.path
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Tuple
 
 import aiohttp
 
-from app.database import Row, upsert_row
-
-
-class Site(enum.Enum):
-    CHESSCOM = "chesscom"
-    LICHESS = "lichess"
+from app.database import Row, RowKey, upsert_row
+from app.site import Site
 
 
 class Fetcher:
@@ -48,7 +43,7 @@ class Fetcher:
     def path_page_file(self, page_no: int):
         return os.path.join(self.path_pages_dir(), f"{page_no}.txt")
 
-    async def fetch(self, url: str) -> Tuple[Union[str, None], int]:
+    async def fetch(self, url: str) -> Tuple[str | None, int]:
         """Make network requests using the internal session.
 
         @param url
@@ -63,7 +58,7 @@ class Fetcher:
                 return await response.text(), 200
         return None, response.status
 
-    async def scrape_usernames(self, page_no: int) -> Union[List[str], None]:
+    async def scrape_usernames(self, page_no: int) -> List[str] | None:
         """Source the specified site for all coach usernames.
 
         All pages should be downloaded at `self.path_page_file()`. Any cached
@@ -93,7 +88,7 @@ class Fetcher:
         raise NotImplementedError()
 
 
-def _insert(row: Row, key: str, value: Any):
+def _insert(row: Row, key: RowKey, value: Any):
     if value is not None:
         row[key] = value
 
@@ -103,19 +98,19 @@ class Extractor:
         self.fetcher = fetcher
         self.username = username
 
-    def get_name(self) -> Union[str, None]:
+    def get_name(self) -> str | None:
         raise NotImplementedError()
 
-    def get_image_url(self) -> Union[str, None]:
+    def get_image_url(self) -> str | None:
         raise NotImplementedError()
 
-    def get_rapid(self) -> Union[int, None]:
+    def get_rapid(self) -> int | None:
         raise NotImplementedError()
 
-    def get_blitz(self) -> Union[int, None]:
+    def get_blitz(self) -> int | None:
         raise NotImplementedError()
 
-    def get_bullet(self) -> Union[int, None]:
+    def get_bullet(self) -> int | None:
         raise NotImplementedError()
 
     def extract(self) -> Row:
@@ -160,7 +155,7 @@ class Pipeline:
     async def process(self, conn, session: aiohttp.ClientSession):
         fetcher = self.get_fetcher(session)
 
-        queue = asyncio.Queue()
+        queue: asyncio.Queue = asyncio.Queue()
 
         # Create a batch of workers to process the jobs put into the queue.
         workers = []
@@ -171,14 +166,11 @@ class Pipeline:
         # Begin downloading all coach usernames and files. The workers will
         # run concurrently to extract all the relvant information and write
         page_no = 1
-        usernames = [None]
-        while len(usernames):
+        usernames: List[str] | None = [""]
+        while usernames is None or len(usernames):
             usernames = await fetcher.scrape_usernames(page_no)
             page_no += 1
-            if usernames is None:
-                usernames = [None]
-                continue
-            for username in usernames:
+            for username in usernames or []:
                 await fetcher._download_user_files(username)
                 extractor = self.get_extractor(fetcher, username)
                 queue.put_nowait((conn, extractor))
