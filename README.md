@@ -13,15 +13,15 @@ This is a simple web scraper for coaches listed on:
 * [lichess.org](https://www.lichess.org/coach)
 
 The program searches for coach usernames as well as specific information about
-each of them (their profile, recent activity, and stats). The result will be
-found in a newly created `data` directory with the following structure:
+each of them (their profile, recent activity, and stats). Data is streamed into
+a Postgres instance. Downloaded content is found in a newly created `data`
+directory with the following structure:
 ```
 data
 └── <site>
 │   ├── coaches
 │   │   ├── <username>
 │   │   │   ├── <username>.html
-│   │   │   ├── export.json
 │   │   │   └── ...
 │   │   ├── ...
 └── pages
@@ -30,20 +30,6 @@ data
 ```
 
 ## Quickstart
-
-If you have nix available, run:
-```bash
-$ nix run . -- --user-agent <your-email> -s <site> [-s <site> ...]
-```
-If not, ensure you have [poetry](https://python-poetry.org/) on your machine and
-instead run the following:
-```bash
-$ poetry run python3 -m app -u <your-email> -s <site> [-s <site> ...]
-```
-After running (this may take several hours), a new CSV will be generated at
-`data/export.csv` containing all scraped content from the specified `<site>`s.
-
-## Database
 
 Included in the development shell of this flake is a [Postgres](https://www.postgresql.org/)
 client (version 15.5). Generate an empty Postgres cluster at `/db` by running
@@ -64,34 +50,18 @@ To later shut the database down, run:
 ```bash
 $ pg_ctl -D db stop
 ```
-
-### Loading Data
-
-To load all exported coach data into a local Postgres instance, use the provided
-`sql/*.sql` files. First initialize the export schema/table:
+Initialize the table that scraped content will be streamed into:
 ```bash
 $ psql -h @scraper -f sql/init.sql
 ```
-Next, dump exported data into the newly created table:
+If you have nix available, you can now run the scraper via
 ```bash
-$ psql -h @scraper -f sql/export.sql -v export="'$PWD/data/export.csv'"
+$ nix run . -- ...
 ```
-Re-running the `sql/export.sql` script will create a backup of the
-`coach_scraper.export` table. It will then upsert the scraped data. You can view
-all backups from the `psql` console like so:
-```
-postgres=# \dt coach_scraper.export*
-```
-
-### E2E
-
-With the above section on loading files, we now have the individual components
-necessary to scrape coach data from our chess website and dump the results into
-the database in one fell swoop. Assuming our database is open with a socket
-connection available at `@scraper`:
+Otherwise, ensure you have [poetry](https://python-poetry.org/) on your machine
+and instead run the following:
 ```bash
-$ nix run . -- --user-agent <your-email> -s chesscom -s lichess
-$ psql -h @scraper -f sql/init.sql -f sql/export.sql -v export="'$PWD/data/export.csv'"
+$ poetry run python3 -m app ...
 ```
 
 ## Development

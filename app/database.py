@@ -101,11 +101,11 @@ def upsert_row(conn, row: Row):
             [
                 row["site"].value,
                 row["username"],
-                row["name"],
-                row["image_url"],
-                row["rapid"],
-                row["blitz"],
-                row["bullet"],
+                row.get("name"),
+                row.get("image_url"),
+                row.get("rapid"),
+                row.get("blitz"),
+                row.get("bullet"),
             ],
         )
         conn.commit()
