@@ -3,6 +3,8 @@ import enum
 import os.path
 from typing import Any, Union
 
+import aiohttp
+
 from app.database import Row
 
 
@@ -17,8 +19,9 @@ class Fetcher:
     Each implementation of this class is responsible for rate-limiting requests.
     """
 
-    def __init__(self, site: str):
+    def __init__(self, site: str, session: aiohttp.ClientSession):
         self.site = site
+        self.session = session
 
     def path_site_dir(self):
         return os.path.join("data", self.site)
@@ -95,7 +98,7 @@ class Extractor:
         """Extract a table row from the coach-specific downloads."""
         row: Row = {}
 
-        _insert(row, "site", self.site)
+        _insert(row, "site", self.fetcher.site)
         _insert(row, "username", self.username)
 
         _insert(row, "name", self.get_name())
@@ -109,27 +112,35 @@ class Extractor:
 
 async def worker(name, queue):
     while True:
-        conn, extractor, username = await queue.get()
-        print(username)
+        conn, extractor = await queue.get()
+        print(extractor.username)
         queue.task_done()
 
 
 class Pipeline:
-    def get_fetcher_cls(self) -> Fetcher:
+    """Site specific download and extraction pipeline.
+
+    Performs downloads serially but processes data extraction from downloaded
+    files concurrently.
+    """
+
+    def __init__(self, worker_count):
+        self.worker_count = worker_count
+
+    def get_fetcher(self, session: aiohttp.ClientSession) -> Fetcher:
         raise NotImplementedError()
 
-    def get_extractor_cls(self, fetcher: Fetcher) -> Extractor:
+    def get_extractor(self, fetcher: Fetcher, username: str) -> Extractor:
         raise NotImplementedError()
 
-    async def process(self, conn, site: Site):
-        fetcher = self.get_fetcher()
-        extractor = self.get_extractor(fetcher)
+    async def process(self, conn, session: aiohttp.ClientSession):
+        fetcher = self.get_fetcher(session)
 
         queue = asyncio.Queue()
 
         # Create a batch of workers to process the jobs put into the queue.
         tasks = []
-        for i in range(10):
+        for i in range(self.worker_count):
             task = asyncio.create_task(worker(f"worker-{i}", queue))
             tasks.append(task)
 
@@ -141,7 +152,8 @@ class Pipeline:
             usernames = await fetcher.scrape_usernames(page_no)
             for username in usernames:
                 await fetcher.download_user_files(username)
-                queue.put_nowait((conn, extractor, username))
+                extractor = self.get_extractor(fetcher, username)
+                queue.put_nowait((conn, extractor))
             page_no += 1
 
         # Wait until the queue is fully processed.

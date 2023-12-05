@@ -3,7 +3,7 @@ from datetime import datetime
 
 from typing_extensions import TypedDict
 
-SCHEMA_NAME = "coach_export"
+SCHEMA_NAME = "coach_scraper"
 TABLE_NAME = "export"
 
 

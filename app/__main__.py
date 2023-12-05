@@ -5,15 +5,20 @@ from typing import List
 import aiohttp
 import psycopg2
 
-from app.repo import Site
+from app.chesscom import Pipeline as ChesscomPipeline
 from app.database import backup_database
+from app.lichess import Pipeline as LichessPipeline
+from app.pipeline import Site
+
+# The number of parallel extraction jobs that are run at a time.
+WORKER_COUNT = 10
 
 
-async def _process(site: Site, session: aiohttp.ClientSession):
+async def _process(site: Site, conn, session: aiohttp.ClientSession):
     if site == Site.CHESSCOM:
-        pass
+        await ChesscomPipeline(worker_count=WORKER_COUNT).process(conn, session)
     elif site == Site.LICHESS:
-        pass
+        await LichessPipeline(worker_count=WORKER_COUNT).process(conn, session)
     else:
         assert False, f"Encountered unknown site: {site}."
 
@@ -23,7 +28,7 @@ async def _entrypoint(conn, user_agent: str, sites: List[Site]):
     async with aiohttp.ClientSession(
         headers={"User-Agent": f"BoardWise coach-scraper ({user_agent})"}
     ) as session:
-        await asyncio.gather(*[_process(site, session) for site in sites])
+        await asyncio.gather(*[_process(site, conn, session) for site in sites])
 
 
 def main():
