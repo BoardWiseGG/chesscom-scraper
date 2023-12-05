@@ -1,4 +1,5 @@
 import enum
+from collections import OrderedDict
 
 
 class Site(enum.Enum):
@@ -109,6 +110,10 @@ class Language(enum.Enum):
     zu_ZA = "isiZulu"
 
 
-code_to_lang = {lang.name.replace("_", "-"): lang.value for lang in Language}
+code_to_lang = OrderedDict(
+    [(lang.name.replace("_", "-"), lang.value) for lang in Language]
+)
 
-lang_to_code = {lang.value: lang.name.replace("_", "-") for lang in Language}
+lang_to_code = OrderedDict(
+    [(lang.value, lang.name.replace("_", "-")) for lang in Language]
+)

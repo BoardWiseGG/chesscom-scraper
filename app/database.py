@@ -52,19 +52,19 @@ def load_languages(conn):
     cursor = None
     try:
         cursor = conn.cursor()
-        for code, name in code_to_lang.items():
+        for pos, (code, name) in enumerate(list(code_to_lang.items())):
             cursor.execute(
                 f"""
                 INSERT INTO {SCHEMA_NAME}.{LANG_TABLE_NAME}
-                  (code, name)
+                  (code, name, pos)
                 VALUES
-                  (%s, %s)
+                  (%s, %s, %s)
                 ON CONFLICT
                   (code)
                 DO UPDATE SET
                   name = EXCLUDED.name;
                 """,
-                [code, name],
+                [code, name, pos],
             )
         conn.commit()
     finally:
