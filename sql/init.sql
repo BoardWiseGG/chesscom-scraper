@@ -8,6 +8,7 @@ CREATE TABLE coach_scraper.export
   , username VARCHAR(255) NOT NULL
   , name VARCHAR(255)
   , image_url TEXT
+  , languages TEXT[]
   , rapid INT
   , blitz INT
   , bullet INT

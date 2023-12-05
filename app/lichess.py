@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup, SoupStrainer, Tag
 from app.pipeline import Extractor as BaseExtractor
 from app.pipeline import Fetcher as BaseFetcher
 from app.pipeline import Pipeline as BasePipeline
-from app.site import Site
+from app.types import Site, lang_to_code
 
 # The number of pages we will at most iterate through. This number was
 # determined by going to https://lichess.org/coach/all/all/alphabetical
@@ -160,6 +160,22 @@ class Extractor(BaseExtractor):
         if "image.lichess1.org" not in src:
             return None
         return src
+
+    def get_languages(self) -> List[str] | None:
+        if self.profile_soup is None:
+            return None
+        tr = self.profile_soup.find("tr", class_="languages")
+        if not isinstance(tr, Tag):
+            return None
+        td = tr.find("td")
+        if not isinstance(td, Tag):
+            return None
+
+        codes = []
+        for lang in [s.strip() for s in tr.get_text().split(",")]:
+            if lang in lang_to_code:
+                codes.append(lang_to_code[lang])
+        return codes
 
     def get_rapid(self) -> int | None:
         return self._find_rating("rapid")
