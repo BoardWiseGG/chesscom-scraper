@@ -6,9 +6,10 @@ from typing import List, Union
 import aiohttp
 from bs4 import BeautifulSoup, SoupStrainer
 
-from app.exporter import BaseExporter
-from app.repo import AnsiColor, Site
-from app.scraper import BaseScraper
+from app.pipeline import Extractor as BaseExtractor
+from app.pipeline import Fetcher as BaseFetcher
+from app.pipeline import Pipeline as BasePipeline
+from app.pipeline import Site
 
 # The number of pages we will at most iterate through. This number was
 # determined by going to https://lichess.org/coach/all/all/alphabetical
@@ -19,79 +20,30 @@ MAX_PAGES = 162
 SLEEP_SECS = 5
 
 
-class Scraper(BaseScraper):
+class Fetcher(BaseFetcher):
     def __init__(self, session: aiohttp.ClientSession):
-        super().__init__(site=Site.LICHESS.value, session=session)
+        super().__init__(site=Site.LICHESS, session=session)
 
-    async def download_usernames(self) -> List[str]:
-        """Scan through lichess.org/coach for all coaches' usernames.
+    async def scrape_usernames(self, page_no: int) -> List[str]:
+        if page_no > MAX_PAGES:
+            return []
 
-        @return
-            The complete list of scraped usernames across every coach listing
-            page.
-        """
-        usernames = []
-        for page_no in range(1, MAX_PAGES + 1):
-            filepath = self.path_page_file(page_no)
-            try:
-                with open(filepath, "r") as f:
-                    self.log(
-                        [
-                            (AnsiColor.INFO, "[INFO]"),
-                            (None, ": Reading file "),
-                            (AnsiColor.DATA, filepath),
-                        ]
-                    )
-                    usernames.extend([line.strip() for line in f.readlines()])
-            except FileNotFoundError:
-                page_usernames = await self._scrape_page(page_no)
-                if not page_usernames:
-                    self.log(
-                        [
-                            (AnsiColor.ERROR, "[ERROR]"),
-                            (None, ": Could not scrape page "),
-                            (AnsiColor.DATA, str(page_no)),
-                        ]
-                    )
-                    continue
-                with open(filepath, "w") as f:
-                    for username in page_usernames:
-                        f.write(f"{username}\n")
-                usernames.extend(page_usernames)
-                self.log(
-                    [
-                        (AnsiColor.INFO, "[INFO]"),
-                        (None, ": Downloaded page "),
-                        (AnsiColor.DATA, filepath),
-                    ]
-                )
-                await asyncio.sleep(SLEEP_SECS)
+        print(f"{self.site.value}: Scraping page {page_no}/{MAX_PAGES}")
 
-        return usernames
+        filepath = self.path_page_file(page_no)
+        try:
+            with open(filepath, "r") as f:
+                return [line.strip() for line in f.readlines()]
+        except FileNotFoundError:
+            pass
 
-    async def _scrape_page(self, page_no: int):
-        """Scan through lichess.org/coach/.../?page=<n> for all coaches'
-        usernames.
+        if self.has_made_request:
+            await asyncio.sleep(SLEEP_SECS)
 
-        @param page_no
-            The page consisting of at most 10 coaches (at the time of writing)
-            whose usernames are to be scraped.
-        @return
-            The list of scraped usernames on the specified coach listing page.
-        """
         url = f"https://lichess.org/coach/all/all/alphabetical?page={page_no}"
-        response, status_code = await self.request(url)
+        response, status_code = await self.fetch(url)
         if response is None:
-            self.log(
-                [
-                    (AnsiColor.ERROR, "[ERROR]"),
-                    (None, ": Received status "),
-                    (AnsiColor.DATA, f"{status_code} "),
-                    (None, "when downloading page "),
-                    (AnsiColor.DATA, str(page_no)),
-                ]
-            )
-            return
+            return None  # Skips this page.
 
         usernames = []
         soup = BeautifulSoup(response, "lxml")
@@ -103,87 +55,67 @@ class Scraper(BaseScraper):
                 username = href[len("/coach/") :]
                 usernames.append(username)
 
+        with open(filepath, "w") as f:
+            for username in usernames:
+                f.write(f"{username}\n")
+
         return usernames
 
-    async def download_profile(self, username: str):
-        """For each coach, download coach-specific data.
+    async def download_user_files(self, username: str) -> None:
+        maybe_download = [
+            (
+                f"https://lichess.org/coach/{username}",
+                self.path_coach_file(username, f"{username}.html"),
+            ),
+            (
+                f"https://lichess.org/@/{username}",
+                self.path_coach_file(username, "stats.html"),
+            ),
+        ]
 
-        @param username
-            The coach username corresponding to the downloaded files.
-        """
-        used_network1 = await self._download_profile_file(
-            url=f"https://lichess.org/coach/{username}",
-            username=username,
-            filename=self.path_coach_file(username, f"{username}.html"),
-        )
-        used_network2 = await self._download_profile_file(
-            url=f"https://lichess.org/@/{username}",
-            username=username,
-            filename=self.path_coach_file(username, "stats.html"),
-        )
+        to_download = []
+        for d_url, d_filename in maybe_download:
+            if os.path.isfile(d_filename):
+                continue
+            to_download.append((d_url, d_filename))
 
-        if any([used_network1, used_network2]):
-            self.log(
-                [
-                    (AnsiColor.INFO, "[INFO]"),
-                    (None, ": Downloaded data for coach "),
-                    (AnsiColor.DATA, username),
-                ]
-            )
+        if not to_download:
+            return
+
+        if self.has_made_request:
             await asyncio.sleep(SLEEP_SECS)
-        else:
-            self.log(
-                [
-                    (AnsiColor.INFO, "[INFO]"),
-                    (None, ": Skipping download for coach "),
-                    (AnsiColor.DATA, username),
-                ]
-            )
 
-    async def _download_profile_file(self, url: str, username: str, filename: str):
-        """Writes the contents of url into the specified file.
+        await asyncio.gather(
+            *[self._download_file(url=d[0], filename=d[1]) for d in to_download]
+        )
 
-        @param url
-            The URL of the file to download.
-        @param username
-            The coach username corresponding to the downloaded file.
-        @param filename
-            The output file to write the downloaded content to.
-        @return:
-            True if we make a network request. False otherwise.
-        """
-        if os.path.isfile(filename):
-            return False
-
-        response, _unused_status = await self.request(url)
+    async def _download_file(self, url: str, filename: str) -> None:
+        response, _unused_status = await self.fetch(url)
         if response is not None:
             with open(filename, "w") as f:
                 f.write(response)
 
-        return True
-
 
 def _profile_filter(elem, attrs):
-    """Includes only relevant segments of the `{username}.html` file."""
     if "coach-widget" in attrs.get("class", ""):
         return True
 
 
 def _stats_filter(elem, attrs):
-    """Includes only relevant segments of the `stats.html` file."""
     if "profile-side" in attrs.get("class", ""):
         return True
     if "sub-ratings" in attrs.get("class", ""):
         return True
 
 
-class Exporter(BaseExporter):
-    def __init__(self, username: str):
-        super().__init__(site=Site.LICHESS.value, username=username)
+class Extractor(BaseExtractor):
+    def __init__(self, fetcher: Fetcher, username: str):
+        super().__init__(fetcher, username)
 
         self.profile_soup = None
         try:
-            with open(self.path_coach_file(username, f"{username}.html"), "r") as f:
+            filename = self.fetcher.path_coach_file(username, f"{username}.html")
+            with open(filename, "r") as f:
                 self.profile_soup = BeautifulSoup(
                     f.read(), "lxml", parse_only=SoupStrainer(_profile_filter)
                 )
@@ -192,14 +124,15 @@ class Exporter(BaseExporter):
 
         self.stats_soup = None
         try:
-            with open(self.path_coach_file(username, "stats.html"), "r") as f:
+            filename = self.fetcher.path_coach_file(username, "stats.html")
+            with open(filename, "r") as f:
                 self.stats_soup = BeautifulSoup(
                     f.read(), "lxml", parse_only=SoupStrainer(_stats_filter)
                 )
         except FileNotFoundError:
             pass
 
-    def export_name(self) -> Union[str, None]:
+    def get_name(self) -> Union[str, None]:
         try:
             profile_side = self.stats_soup.find("div", class_="profile-side")
             user_infos = profile_side.find("div", class_="user-infos")
@@ -208,7 +141,7 @@ class Exporter(BaseExporter):
         except AttributeError:
             return None
 
-    def export_image_url(self) -> Union[str, None]:
+    def get_image_url(self) -> Union[str, None]:
         try:
             picture = self.profile_soup.find("img", class_="picture")
             src = picture.get("src", "")
@@ -217,13 +150,13 @@ class Exporter(BaseExporter):
         except AttributeError:
             return None
 
-    def export_rapid(self) -> Union[int, None]:
+    def get_rapid(self) -> Union[int, None]:
         return self._find_rating("rapid")
 
-    def export_blitz(self) -> Union[int, None]:
+    def get_blitz(self) -> Union[int, None]:
         return self._find_rating("blitz")
 
-    def export_bullet(self) -> Union[int, None]:
+    def get_bullet(self) -> Union[int, None]:
         return self._find_rating("bullet")
 
     def _find_rating(self, name) -> Union[int, None]:
@@ -237,3 +170,11 @@ class Exporter(BaseExporter):
             return int(value)
         except (AttributeError, ValueError):
             return None
+
+
+class Pipeline(BasePipeline):
+    def get_fetcher(self, session: aiohttp.ClientSession):
+        return Fetcher(session)
+
+    def get_extractor(self, fetcher: Fetcher, username: str):
+        return Extractor(fetcher, username)
