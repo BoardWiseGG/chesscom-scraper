@@ -58,6 +58,27 @@
             })
           ) pypkgs-build-requirements
         );
+
+        types = with pkgs.python311Packages; {
+          beautifulsoup4 = buildPythonPackage rec {
+            pname = "types-beautifulsoup4";
+            version = "4.12.0.7";
+            src = pkgs.fetchPypi {
+              inherit pname version;
+              sha256 = "sha256-WZgAKNKb9V0Ns1nvowW3W6zwy5Lj8/az/UCPJTHfJ0w";
+            };
+            doCheck = false;
+          };
+          psycopg2 = buildPythonPackage rec {
+            pname = "types-psycopg2";
+            version = "2.9.21.19";
+            src = pkgs.fetchPypi {
+              inherit pname version;
+              sha256 = "sha256-7DquUi3enEEUFZe8QRI7TJVftAk7H8fsbuYHeVoKCI8=";
+            };
+            doCheck = false;
+          };
+        };
       in
       {
         packages = {
@@ -88,6 +109,9 @@
             pyls-isort
             python-lsp-black
             python-lsp-server
+            types.beautifulsoup4
+            types.psycopg2
+            typing-extensions
           ]);
         };
       });

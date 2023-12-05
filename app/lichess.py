@@ -1,15 +1,15 @@
 import asyncio
 import os
 import os.path
-from typing import List, Union
+from typing import List
 
 import aiohttp
-from bs4 import BeautifulSoup, SoupStrainer
+from bs4 import BeautifulSoup, SoupStrainer, Tag
 
 from app.pipeline import Extractor as BaseExtractor
 from app.pipeline import Fetcher as BaseFetcher
 from app.pipeline import Pipeline as BasePipeline
-from app.pipeline import Site
+from app.site import Site
 
 # The number of pages we will at most iterate through. This number was
 # determined by going to https://lichess.org/coach/all/all/alphabetical
@@ -24,7 +24,7 @@ class Fetcher(BaseFetcher):
     def __init__(self, session: aiohttp.ClientSession):
         super().__init__(site=Site.LICHESS, session=session)
 
-    async def scrape_usernames(self, page_no: int) -> List[str]:
+    async def scrape_usernames(self, page_no: int) -> List[str] | None:
         if page_no > MAX_PAGES:
             return []
 
@@ -96,20 +96,22 @@ class Fetcher(BaseFetcher):
                 f.write(response)
 
 
-def _profile_filter(elem, attrs):
+def _profile_filter(elem: Tag | str | None, attrs={}) -> bool:
     if "coach-widget" in attrs.get("class", ""):
         return True
+    return False
 
 
-def _stats_filter(elem, attrs):
+def _stats_filter(elem: Tag | str | None, attrs={}) -> bool:
     if "profile-side" in attrs.get("class", ""):
         return True
     if "sub-ratings" in attrs.get("class", ""):
         return True
+    return False
 
 
 class Extractor(BaseExtractor):
-    def __init__(self, fetcher: Fetcher, username: str):
+    def __init__(self, fetcher: BaseFetcher, username: str):
         super().__init__(fetcher, username)
 
         self.profile_soup = None
@@ -132,43 +134,60 @@ class Extractor(BaseExtractor):
         except FileNotFoundError:
             pass
 
-    def get_name(self) -> Union[str, None]:
-        try:
-            profile_side = self.stats_soup.find("div", class_="profile-side")
-            user_infos = profile_side.find("div", class_="user-infos")
-            name = user_infos.find("strong", class_="name")
-            return name.get_text().strip()
-        except AttributeError:
+    def get_name(self) -> str | None:
+        if self.stats_soup is None:
             return None
-
-    def get_image_url(self) -> Union[str, None]:
-        try:
-            picture = self.profile_soup.find("img", class_="picture")
-            src = picture.get("src", "")
-            if "image.lichess1.org" in src:
-                return src
-        except AttributeError:
+        profile_side = self.stats_soup.find("div", class_="profile-side")
+        if not isinstance(profile_side, Tag):
             return None
+        user_infos = profile_side.find("div", class_="user-infos")
+        if not isinstance(user_infos, Tag):
+            return None
+        name = user_infos.find("strong", class_="name")
+        if not isinstance(name, Tag):
+            return None
+        return name.get_text().strip()
 
-    def get_rapid(self) -> Union[int, None]:
+    def get_image_url(self) -> str | None:
+        if self.profile_soup is None:
+            return None
+        picture = self.profile_soup.find("img", class_="picture")
+        if not isinstance(picture, Tag):
+            return None
+        src = picture.get("src", "")
+        if not isinstance(src, str):
+            return None
+        if "image.lichess1.org" not in src:
+            return None
+        return src
+
+    def get_rapid(self) -> int | None:
         return self._find_rating("rapid")
 
-    def get_blitz(self) -> Union[int, None]:
+    def get_blitz(self) -> int | None:
         return self._find_rating("blitz")
 
-    def get_bullet(self) -> Union[int, None]:
+    def get_bullet(self) -> int | None:
         return self._find_rating("bullet")
 
-    def _find_rating(self, name) -> Union[int, None]:
+    def _find_rating(self, name) -> int | None:
+        if self.stats_soup is None:
+            return None
+        a = self.stats_soup.find("a", href=f"/@/{self.username}/perf/{name}")
+        if not isinstance(a, Tag):
+            return None
+        rating = a.find("rating")
+        if not isinstance(rating, Tag):
+            return None
+        strong = rating.find("strong")
+        if not isinstance(strong, Tag):
+            return None
+        value = strong.get_text()
+        if value[-1] == "?":
+            value = value[:-1]
         try:
-            a = self.stats_soup.find("a", href=f"/@/{self.username}/perf/{name}")
-            rating = a.find("rating")
-            strong = rating.find("strong")
-            value = strong.get_text()
-            if value[-1] == "?":
-                value = value[:-1]
             return int(value)
-        except (AttributeError, ValueError):
+        except ValueError:
             return None
 
 
@@ -176,5 +195,5 @@ class Pipeline(BasePipeline):
     def get_fetcher(self, session: aiohttp.ClientSession):
         return Fetcher(session)
 
-    def get_extractor(self, fetcher: Fetcher, username: str):
+    def get_extractor(self, fetcher: BaseFetcher, username: str):
         return Extractor(fetcher, username)

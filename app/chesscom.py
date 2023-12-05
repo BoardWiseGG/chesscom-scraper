@@ -2,15 +2,15 @@ import asyncio
 import json
 import os
 import os.path
-from typing import List, Union
+from typing import List
 
 import aiohttp
-from bs4 import BeautifulSoup, SoupStrainer
+from bs4 import BeautifulSoup, SoupStrainer, Tag
 
 from app.pipeline import Extractor as BaseExtractor
 from app.pipeline import Fetcher as BaseFetcher
 from app.pipeline import Pipeline as BasePipeline
-from app.pipeline import Site
+from app.site import Site
 
 # The number of coach listing pages we will at most iterate through. This number
 # was determined by going to chess.com/coaches?sortBy=alphabetical&page=1 and
@@ -25,7 +25,7 @@ class Fetcher(BaseFetcher):
     def __init__(self, session: aiohttp.ClientSession):
         super().__init__(site=Site.CHESSCOM, session=session)
 
-    async def scrape_usernames(self, page_no: int) -> List[str]:
+    async def scrape_usernames(self, page_no: int) -> List[str] | None:
         if page_no > MAX_PAGES:
             return []
 
@@ -100,15 +100,16 @@ class Fetcher(BaseFetcher):
                 f.write(response)
 
 
-def _profile_filter(elem, attrs):
+def _profile_filter(elem: Tag | str | None, attrs={}) -> bool:
     if "profile-header-info" in attrs.get("class", ""):
         return True
     if "profile-card-info" in attrs.get("class", ""):
         return True
+    return False
 
 
 class Extractor(BaseExtractor):
-    def __init__(self, fetcher: Fetcher, username: str):
+    def __init__(self, fetcher: BaseFetcher, username: str):
         super().__init__(fetcher, username)
 
         self.profile_soup = None
@@ -131,29 +132,37 @@ class Extractor(BaseExtractor):
         except FileNotFoundError:
             pass
 
-    def get_name(self) -> Union[str, None]:
-        try:
-            name = self.profile_soup.find("div", class_="profile-card-name")
-            return name.get_text().strip()
-        except AttributeError:
+    def get_name(self) -> str | None:
+        if self.profile_soup is None:
             return None
-
-    def get_image_url(self) -> Union[str, None]:
-        try:
-            div = self.profile_soup.find("div", class_="profile-header-avatar")
-            src = div.find("img").get("src", "")
-            if "images.chesscomfiles.com" in src:
-                return src
-        except AttributeError:
+        name = self.profile_soup.find("div", class_="profile-card-name")
+        if not isinstance(name, Tag):
             return None
+        return name.get_text().strip()
 
-    def get_rapid(self) -> Union[int, None]:
+    def get_image_url(self) -> str | None:
+        if self.profile_soup is None:
+            return None
+        div = self.profile_soup.find("div", class_="profile-header-avatar")
+        if not isinstance(div, Tag):
+            return None
+        img = div.find("img")
+        if not isinstance(img, Tag):
+            return None
+        src = img.get("src", "")
+        if not isinstance(src, str):
+            return None
+        if "images.chesscomfiles.com" not in src:
+            return None
+        return src
+
+    def get_rapid(self) -> int | None:
         return self.stats_json.get("rapid", {}).get("rating")
 
-    def get_blitz(self) -> Union[int, None]:
+    def get_blitz(self) -> int | None:
         return self.stats_json.get("lightning", {}).get("rating")
 
-    def get_bullet(self) -> Union[int, None]:
+    def get_bullet(self) -> int | None:
         return self.stats_json.get("bullet", {}).get("rating")
 
 
@@ -161,5 +170,5 @@ class Pipeline(BasePipeline):
     def get_fetcher(self, session: aiohttp.ClientSession):
         return Fetcher(session)
 
-    def get_extractor(self, fetcher: Fetcher, username: str):
+    def get_extractor(self, fetcher: BaseFetcher, username: str):
         return Extractor(fetcher, username)

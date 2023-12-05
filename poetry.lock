@@ -450,42 +450,6 @@ files = [
 ]
 
 [[package]]
-name = "types-beautifulsoup4"
-version = "4.12.0.7"
-description = "Typing stubs for beautifulsoup4"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "types-beautifulsoup4-4.12.0.7.tar.gz", hash = "sha256:59980028d29bf55d0db359efa305b75bacf0cb92e3f3f6b3fd408f2531df274c"},
-    {file = "types_beautifulsoup4-4.12.0.7-py3-none-any.whl", hash = "sha256:8b03b054cb2e62abf82bbbeda57a07257026f4ed9010ef17d8f8eff43bb1f9b7"},
-]
-
-[package.dependencies]
-types-html5lib = "*"
-
-[[package]]
-name = "types-html5lib"
-version = "1.1.11.15"
-description = "Typing stubs for html5lib"
-optional = false
-python-versions = "*"
-files = [
-    {file = "types-html5lib-1.1.11.15.tar.gz", hash = "sha256:80e1a2062d22a3affe5c28d97da30bffbf3a076d393c80fc6f1671216c1bd492"},
-    {file = "types_html5lib-1.1.11.15-py3-none-any.whl", hash = "sha256:16fe936d99b9f7fc210e2e21a2aed1b6bbbc554ad8242a6ef75f6f2bddb27e58"},
-]
-
-[[package]]
-name = "typing-extensions"
-version = "4.8.0"
-description = "Backported and Experimental Type Hints for Python 3.8+"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "typing_extensions-4.8.0-py3-none-any.whl", hash = "sha256:8f92fc8806f9a6b641eaa5318da32b44d401efaac0f6678c9bc448ba3605faa0"},
-    {file = "typing_extensions-4.8.0.tar.gz", hash = "sha256:df8e4339e9cb77357558cbdbceca33c303714cf861d1eef15e1070055ae8b7ef"},
-]
-
-[[package]]
 name = "yarl"
 version = "1.9.3"
 description = "Yet another URL library"
@@ -591,4 +555,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "9e4078c4f5eeffbc90b895528738c457dadd671a784ab8c411a5c3fe91925e34"
+content-hash = "4a667c2246018c259f23d7fe07102b3b680693beccbc685467b1e29c2c3e2db6"

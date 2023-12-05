@@ -8,7 +8,7 @@ import psycopg2
 from app.chesscom import Pipeline as ChesscomPipeline
 from app.database import backup_database
 from app.lichess import Pipeline as LichessPipeline
-from app.pipeline import Site
+from app.site import Site
 
 # The number of parallel extraction jobs that are run at a time.
 WORKER_COUNT = 10
