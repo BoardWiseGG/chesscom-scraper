@@ -62,3 +62,52 @@ def backup_database(conn):
     finally:
         if cursor:
             cursor.close()
+
+
+def upsert_row(conn, row: Row):
+    """Upsert the specified `Row` into the database table."""
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            f"""
+            INSERT INTO {SCHEMA_NAME}.{TABLE_NAME}
+              ( site
+              , username
+              , name
+              , image_url
+              , rapid
+              , blitz
+              , bullet
+              )
+            VALUES
+              ( %s
+              , %s
+              , %s
+              , %s
+              , %s
+              , %s
+              , %s
+              )
+            ON CONFLICT
+              (site, username)
+            DO UPDATE SET
+              name = EXCLUDED.name,
+              image_url = EXCLUDED.image_url,
+              rapid = EXCLUDED.rapid,
+              blitz = EXCLUDED.blitz,
+              bullet = EXCLUDED.bullet;
+            """,
+            [
+                row["site"].value,
+                row["username"],
+                row["name"],
+                row["image_url"],
+                row["rapid"],
+                row["blitz"],
+                row["bullet"],
+            ],
+        )
+        conn.commit()
+    finally:
+        cursor.close()

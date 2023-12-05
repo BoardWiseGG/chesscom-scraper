@@ -1,11 +1,11 @@
 import asyncio
 import enum
 import os.path
-from typing import Any, Union
+from typing import Any, List, Tuple, Union
 
 import aiohttp
 
-from app.database import Row
+from app.database import Row, upsert_row
 
 
 class Site(enum.Enum):
@@ -19,12 +19,16 @@ class Fetcher:
     Each implementation of this class is responsible for rate-limiting requests.
     """
 
-    def __init__(self, site: str, session: aiohttp.ClientSession):
+    def __init__(self, site: Site, session: aiohttp.ClientSession):
         self.site = site
         self.session = session
+        self.has_made_request = False
+
+        os.makedirs(self.path_coaches_dir(), exist_ok=True)
+        os.makedirs(self.path_pages_dir(), exist_ok=True)
 
     def path_site_dir(self):
-        return os.path.join("data", self.site)
+        return os.path.join("data", self.site.value)
 
     def path_site_file(self, filename: str):
         return os.path.join(self.path_site_dir(), filename)
@@ -44,7 +48,26 @@ class Fetcher:
     def path_page_file(self, page_no: int):
         return os.path.join(self.path_pages_dir(), f"{page_no}.txt")
 
-    async def scrape_usernames(self, page_no: int):
+    async def fetch(self, url: str) -> Tuple[Union[str, None], int]:
+        """Make network requests using the internal session.
+
+        @param url
+            The URL to make a GET request to.
+        @return
+            Tuple containing the response body (if the request was successful)
+            and status code.
+        """
+        self.has_made_request = True
+        async with self.session.get(url) as response:
+            if response.status == 200:
+                return await response.text(), 200
+        return None, response.status
+
+    async def _scrape_usernames(self, page_no: int) -> Union[List[str], None]:
+        print(f"INFO: Scraping page {page_no} of {self.site.value}")
+        await self.scrape_usernames(page_no)
+
+    async def scrape_usernames(self, page_no: int) -> Union[List[str], None]:
         """Source the specified site for all coach usernames.
 
         All pages should be downloaded at `self.path_page_file()`. Any cached
@@ -56,11 +79,16 @@ class Fetcher:
             is embedded in.
         @return:
             A list of usernames. Should return an empty list if no more
-            usernames are found.
+            usernames are found. Can return `None` to indicate the specified
+            page should be skipped.
         """
         raise NotImplementedError()
 
-    async def download_user_files(self, username: str):
+    async def _download_user_files(self, username: str) -> None:
+        os.makedirs(self.path_coach_dir(username), exist_ok=True)
+        await self.download_user_files(username)
+
+    async def download_user_files(self, username: str) -> None:
         """Source the specified site for all user-specific files.
 
         What files are downloaded depends on the `Downloader` implementation.
@@ -110,10 +138,10 @@ class Extractor:
         return row
 
 
-async def worker(name, queue):
+async def task_worker(name, queue):
     while True:
         conn, extractor = await queue.get()
-        print(extractor.username)
+        upsert_row(conn, extractor.extract())
         queue.task_done()
 
 
@@ -139,27 +167,30 @@ class Pipeline:
         queue = asyncio.Queue()
 
         # Create a batch of workers to process the jobs put into the queue.
-        tasks = []
+        workers = []
         for i in range(self.worker_count):
-            task = asyncio.create_task(worker(f"worker-{i}", queue))
-            tasks.append(task)
+            worker = asyncio.create_task(task_worker(f"worker-{i}", queue))
+            workers.append(worker)
 
         # Begin downloading all coach usernames and files. The workers will
         # run concurrently to extract all the relvant information and write
         page_no = 1
         usernames = [None]
         while len(usernames):
-            usernames = await fetcher.scrape_usernames(page_no)
+            usernames = await fetcher._scrape_usernames(page_no)
+            page_no += 1
+            if usernames is None:
+                usernames = [None]
+                continue
             for username in usernames:
-                await fetcher.download_user_files(username)
+                await fetcher._download_user_files(username)
                 extractor = self.get_extractor(fetcher, username)
                 queue.put_nowait((conn, extractor))
-            page_no += 1
 
         # Wait until the queue is fully processed.
         await queue.join()
 
         # We can now turn down the workers.
-        for task in tasks:
-            task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
+        for worker in workers:
+            worker.cancel()
+        await asyncio.gather(*workers, return_exceptions=True)
