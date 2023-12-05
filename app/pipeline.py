@@ -1,3 +1,4 @@
+import asyncio
 import enum
 import os.path
 from typing import Any, Union
@@ -106,12 +107,47 @@ class Extractor:
         return row
 
 
+async def worker(name, queue):
+    while True:
+        conn, extractor, username = await queue.get()
+        print(username)
+        queue.task_done()
+
+
 class Pipeline:
-    def get_fetcher(self) -> Fetcher:
+    def get_fetcher_cls(self) -> Fetcher:
         raise NotImplementedError()
 
-    def get_extractor(self) -> Extractor:
+    def get_extractor_cls(self, fetcher: Fetcher) -> Extractor:
         raise NotImplementedError()
 
-    def process(self, site: Site):
-        pass
+    async def process(self, conn, site: Site):
+        fetcher = self.get_fetcher()
+        extractor = self.get_extractor(fetcher)
+
+        queue = asyncio.Queue()
+
+        # Create a batch of workers to process the jobs put into the queue.
+        tasks = []
+        for i in range(10):
+            task = asyncio.create_task(worker(f"worker-{i}", queue))
+            tasks.append(task)
+
+        # Begin downloading all coach usernames and files. The workers will
+        # run concurrently to extract all the relvant information and write
+        page_no = 1
+        usernames = [None]
+        while len(usernames):
+            usernames = await fetcher.scrape_usernames(page_no)
+            for username in usernames:
+                await fetcher.download_user_files(username)
+                queue.put_nowait((conn, extractor, username))
+            page_no += 1
+
+        # Wait until the queue is fully processed.
+        await queue.join()
+
+        # We can now turn down the workers.
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
