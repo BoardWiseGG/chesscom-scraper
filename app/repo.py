@@ -10,11 +10,6 @@ class AnsiColor(enum.Enum):
     RESET = "\033[0m"
 
 
-class Site(enum.Enum):
-    CHESSCOM = "chesscom"
-    LICHESS = "lichess"
-
-
 class Repo:
     """Shared filesystem-related functionality."""
 
