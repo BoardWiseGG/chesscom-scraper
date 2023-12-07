@@ -68,10 +68,6 @@ class Fetcher(BaseFetcher):
                 self.path_coach_file(username, f"{username}.html"),
             ),
             (
-                f"https://www.chess.com/callback/member/activity/{username}?page=1",
-                self.path_coach_file(username, "activity.json"),
-            ),
-            (
                 f"https://www.chess.com/callback/member/stats/{username}",
                 self.path_coach_file(username, "stats.json"),
             ),
