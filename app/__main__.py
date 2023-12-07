@@ -4,6 +4,7 @@ from typing import List
 
 import aiohttp
 import psycopg2
+from lingua import LanguageDetector, LanguageDetectorBuilder
 
 from app.chesscom import Pipeline as ChesscomPipeline
 from app.database import backup_database, load_languages
@@ -14,21 +15,31 @@ from app.types import Site
 WORKER_COUNT = 10
 
 
-async def _process(site: Site, conn, session: aiohttp.ClientSession):
+async def _process(
+    site: Site, conn, detector: LanguageDetector, session: aiohttp.ClientSession
+):
     if site == Site.CHESSCOM:
-        await ChesscomPipeline(worker_count=WORKER_COUNT).process(conn, session)
+        await ChesscomPipeline(worker_count=WORKER_COUNT).process(
+            conn, detector, session
+        )
     elif site == Site.LICHESS:
-        await LichessPipeline(worker_count=WORKER_COUNT).process(conn, session)
+        await LichessPipeline(worker_count=WORKER_COUNT).process(
+            conn, detector, session
+        )
     else:
         assert False, f"Encountered unknown site: {site}."
 
 
-async def _entrypoint(conn, user_agent: str, sites: List[Site]):
+async def _entrypoint(
+    conn, detector: LanguageDetector, user_agent: str, sites: List[Site]
+):
     """Top-level entrypoint that dispatches a pipeline per requested site."""
     async with aiohttp.ClientSession(
         headers={"User-Agent": f"BoardWise coach-scraper ({user_agent})"}
     ) as session:
-        await asyncio.gather(*[_process(site, conn, session) for site in sites])
+        await asyncio.gather(
+            *[_process(site, conn, detector, session) for site in sites]
+        )
 
 
 def main():
@@ -58,6 +69,8 @@ def main():
 
     args = parser.parse_args()
 
+    detector = LanguageDetectorBuilder.from_all_languages().build()
+
     conn = None
     try:
         conn = psycopg2.connect(
@@ -72,6 +85,7 @@ def main():
         asyncio.run(
             _entrypoint(
                 conn=conn,
+                detector=detector,
                 user_agent=args.user_agent,
                 sites=list(map(Site, set(args.site))),
             )

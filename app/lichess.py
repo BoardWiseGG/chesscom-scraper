@@ -5,11 +5,13 @@ from typing import List
 
 import aiohttp
 from bs4 import BeautifulSoup, SoupStrainer, Tag
+from lingua import LanguageDetector
 
+from app.locale import Locale, native_to_locale
 from app.pipeline import Extractor as BaseExtractor
 from app.pipeline import Fetcher as BaseFetcher
 from app.pipeline import Pipeline as BasePipeline
-from app.types import Site, Title, lang_to_code
+from app.types import Site, Title
 
 # The number of pages we will at most iterate through. This number was
 # determined by going to https://lichess.org/coach/all/all/alphabetical
@@ -113,8 +115,8 @@ def _stats_filter(elem: Tag | str | None, attrs={}) -> bool:
 
 
 class Extractor(BaseExtractor):
-    def __init__(self, fetcher: BaseFetcher, username: str):
-        super().__init__(fetcher, username)
+    def __init__(self, fetcher: BaseFetcher, detector: LanguageDetector, username: str):
+        super().__init__(fetcher, detector, username)
 
         self.profile_soup = None
         try:
@@ -175,7 +177,7 @@ class Extractor(BaseExtractor):
         except ValueError:
             return None
 
-    def get_languages(self) -> List[str] | None:
+    def get_languages(self) -> List[Locale] | None:
         if self.profile_soup is None:
             return None
         tr = self.profile_soup.find("tr", class_="languages")
@@ -187,8 +189,8 @@ class Extractor(BaseExtractor):
 
         codes = []
         for lang in [s.strip() for s in tr.get_text().split(",")]:
-            if lang in lang_to_code:
-                codes.append(lang_to_code[lang])
+            if lang in native_to_locale:
+                codes.append(native_to_locale[lang])
         return codes
 
     def get_rapid(self) -> int | None:
@@ -225,5 +227,7 @@ class Pipeline(BasePipeline):
     def get_fetcher(self, session: aiohttp.ClientSession):
         return Fetcher(session)
 
-    def get_extractor(self, fetcher: BaseFetcher, username: str):
-        return Extractor(fetcher, username)
+    def get_extractor(
+        self, fetcher: BaseFetcher, detector: LanguageDetector, username: str
+    ):
+        return Extractor(fetcher, detector, username)

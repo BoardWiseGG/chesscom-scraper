@@ -4,7 +4,8 @@ from typing import List, Literal
 
 from typing_extensions import TypedDict
 
-from app.types import Site, Title, code_to_lang
+from app.locale import Locale, locale_to_str, native_to_locale
+from app.types import Site, Title
 
 SCHEMA_NAME = "coach_scraper"
 MAIN_TABLE_NAME = "export"
@@ -41,7 +42,7 @@ class Row(TypedDict, total=False):
     # The FIDE title assigned to the coach on the source siste.
     title: Title
     # The list of languages the coach is fluent in.
-    languages: List[str]
+    languages: List[Locale]
     # Rapid rating relative to the site they were sourced from.
     rapid: int
     # Blitz rating relative to the site they were sourced from.
@@ -55,7 +56,7 @@ def load_languages(conn):
     cursor = None
     try:
         cursor = conn.cursor()
-        for pos, (code, name) in enumerate(list(code_to_lang.items())):
+        for pos, (name, loc) in enumerate(list(native_to_locale.items())):
             cursor.execute(
                 f"""
                 INSERT INTO {SCHEMA_NAME}.{LANG_TABLE_NAME}
@@ -67,7 +68,7 @@ def load_languages(conn):
                 DO UPDATE SET
                   name = EXCLUDED.name;
                 """,
-                [code, name, pos],
+                [locale_to_str(loc), name, pos],
             )
         conn.commit()
     finally:
@@ -157,7 +158,7 @@ def upsert_row(conn, row: Row):
                 row.get("name"),
                 row.get("image_url"),
                 row["title"].value if "title" in row else None,
-                row.get("languages", []),
+                list(map(locale_to_str, row.get("languages", []))),
                 row.get("rapid"),
                 row.get("blitz"),
                 row.get("bullet"),

@@ -6,7 +6,9 @@ from typing import List
 
 import aiohttp
 from bs4 import BeautifulSoup, SoupStrainer, Tag
+from lingua import LanguageDetector
 
+from app.locale import Locale, lang_to_locale
 from app.pipeline import Extractor as BaseExtractor
 from app.pipeline import Fetcher as BaseFetcher
 from app.pipeline import Pipeline as BasePipeline
@@ -97,16 +99,19 @@ class Fetcher(BaseFetcher):
 
 
 def _profile_filter(elem: Tag | str | None, attrs={}) -> bool:
-    if "profile-header-info" in attrs.get("class", ""):
-        return True
-    if "profile-card-info" in attrs.get("class", ""):
-        return True
+    for className in [
+        "profile-header-info",
+        "profile-card-info",
+        "profile-about",
+    ]:
+        if className in attrs.get("class", ""):
+            return True
     return False
 
 
 class Extractor(BaseExtractor):
-    def __init__(self, fetcher: BaseFetcher, username: str):
-        super().__init__(fetcher, username)
+    def __init__(self, fetcher: BaseFetcher, detector: LanguageDetector, username: str):
+        super().__init__(fetcher, detector, username)
 
         self.profile_soup = None
         try:
@@ -164,9 +169,19 @@ class Extractor(BaseExtractor):
         except ValueError:
             return None
 
-    def get_languages(self) -> List[str] | None:
-        # TODO: Extract using huggingface model.
-        return None
+    def get_languages(self) -> List[Locale] | None:
+        if self.profile_soup is None:
+            return None
+        about = self.profile_soup.find("div", class_="profile-about")
+        if not isinstance(about, Tag):
+            return None
+        detected = self.detector.detect_language_of(about.text)
+        if detected is None:
+            return None
+        code = lang_to_locale.get(detected)
+        if code is None:
+            return None
+        return [code]
 
     def get_rapid(self) -> int | None:
         return self.stats_json.get("rapid", {}).get("rating")
@@ -182,5 +197,7 @@ class Pipeline(BasePipeline):
     def get_fetcher(self, session: aiohttp.ClientSession):
         return Fetcher(session)
 
-    def get_extractor(self, fetcher: BaseFetcher, username: str):
-        return Extractor(fetcher, username)
+    def get_extractor(
+        self, fetcher: BaseFetcher, detector: LanguageDetector, username: str
+    ):
+        return Extractor(fetcher, detector, username)

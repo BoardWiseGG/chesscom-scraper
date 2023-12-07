@@ -3,8 +3,10 @@ import os.path
 from typing import Any, List, Tuple
 
 import aiohttp
+from lingua import LanguageDetector
 
 from app.database import Row, RowKey, upsert_row
+from app.locale import Locale
 from app.types import Site, Title
 
 
@@ -94,8 +96,9 @@ def _insert(row: Row, key: RowKey, value: Any):
 
 
 class Extractor:
-    def __init__(self, fetcher: Fetcher, username: str):
+    def __init__(self, fetcher: Fetcher, detector: LanguageDetector, username: str):
         self.fetcher = fetcher
+        self.detector = detector
         self.username = username
 
     def get_name(self) -> str | None:
@@ -107,7 +110,7 @@ class Extractor:
     def get_title(self) -> Title | None:
         raise NotImplementedError()
 
-    def get_languages(self) -> List[str] | None:
+    def get_languages(self) -> List[Locale] | None:
         raise NotImplementedError()
 
     def get_rapid(self) -> int | None:
@@ -157,10 +160,14 @@ class Pipeline:
     def get_fetcher(self, session: aiohttp.ClientSession) -> Fetcher:
         raise NotImplementedError()
 
-    def get_extractor(self, fetcher: Fetcher, username: str) -> Extractor:
+    def get_extractor(
+        self, fetcher: Fetcher, detector: LanguageDetector, username: str
+    ) -> Extractor:
         raise NotImplementedError()
 
-    async def process(self, conn, session: aiohttp.ClientSession):
+    async def process(
+        self, conn, detector: LanguageDetector, session: aiohttp.ClientSession
+    ):
         fetcher = self.get_fetcher(session)
 
         queue: asyncio.Queue = asyncio.Queue()
@@ -180,7 +187,7 @@ class Pipeline:
             page_no += 1
             for username in usernames or []:
                 await fetcher._download_user_files(username)
-                extractor = self.get_extractor(fetcher, username)
+                extractor = self.get_extractor(fetcher, detector, username)
                 queue.put_nowait((conn, extractor))
 
         # Wait until the queue is fully processed.
