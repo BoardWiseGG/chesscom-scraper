@@ -13,6 +13,7 @@ CREATE TABLE coach_scraper.export
   , rapid INT
   , blitz INT
   , bullet INT
+  , position INT
   );
 
 CREATE UNIQUE INDEX IF NOT EXISTS

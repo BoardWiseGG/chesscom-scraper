@@ -1,3 +1,4 @@
+import random
 import sys
 from datetime import datetime
 from typing import List, Literal
@@ -129,9 +130,11 @@ def upsert_row(conn, row: Row):
               , rapid
               , blitz
               , bullet
+              , position
               )
             VALUES
               ( %s
+              , %s
               , %s
               , %s
               , %s
@@ -150,7 +153,8 @@ def upsert_row(conn, row: Row):
               languages = EXCLUDED.languages,
               rapid = EXCLUDED.rapid,
               blitz = EXCLUDED.blitz,
-              bullet = EXCLUDED.bullet;
+              bullet = EXCLUDED.bullet,
+              position = EXCLUDED.position;
             """,
             [
                 row["site"].value,
@@ -162,6 +166,7 @@ def upsert_row(conn, row: Row):
                 row.get("rapid"),
                 row.get("blitz"),
                 row.get("bullet"),
+                random.randint(0, 1000000),
             ],
         )
         conn.commit()
