@@ -9,6 +9,7 @@ CREATE TABLE coach_scraper.export
   , name VARCHAR(255)
   , image_url TEXT
   , languages TEXT[]
+  , title VARCHAR(3)
   , rapid INT
   , blitz INT
   , bullet INT

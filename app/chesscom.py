@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup, SoupStrainer, Tag
 from app.pipeline import Extractor as BaseExtractor
 from app.pipeline import Fetcher as BaseFetcher
 from app.pipeline import Pipeline as BasePipeline
-from app.types import Site
+from app.types import Site, Title
 
 # The number of coach listing pages we will at most iterate through. This number
 # was determined by going to chess.com/coaches?sortBy=alphabetical&page=1 and
@@ -155,6 +155,18 @@ class Extractor(BaseExtractor):
         if "images.chesscomfiles.com" not in src:
             return None
         return src
+
+    def get_title(self) -> Title | None:
+        if self.profile_soup is None:
+            return None
+        a = self.profile_soup.find("a", class_="profile-card-chesstitle")
+        if not isinstance(a, Tag):
+            return None
+        title = a.get_text().strip()
+        try:
+            return Title(title)
+        except ValueError:
+            return None
 
     def get_languages(self) -> List[str] | None:
         # TODO: Extract using huggingface model.

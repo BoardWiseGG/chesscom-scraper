@@ -4,7 +4,7 @@ from typing import List, Literal
 
 from typing_extensions import TypedDict
 
-from app.types import Site, code_to_lang
+from app.types import Site, Title, code_to_lang
 
 SCHEMA_NAME = "coach_scraper"
 MAIN_TABLE_NAME = "export"
@@ -16,6 +16,7 @@ RowKey = (
     | Literal["username"]
     | Literal["name"]
     | Literal["image_url"]
+    | Literal["title"]
     | Literal["languages"]
     | Literal["rapid"]
     | Literal["blitz"]
@@ -37,6 +38,8 @@ class Row(TypedDict, total=False):
     name: str
     # Profile image used on the source site.
     image_url: str
+    # The FIDE title assigned to the coach on the source siste.
+    title: Title
     # The list of languages the coach is fluent in.
     languages: List[str]
     # Rapid rating relative to the site they were sourced from.
@@ -120,6 +123,7 @@ def upsert_row(conn, row: Row):
               , username
               , name
               , image_url
+              , title
               , languages
               , rapid
               , blitz
@@ -134,12 +138,14 @@ def upsert_row(conn, row: Row):
               , %s
               , %s
               , %s
+              , %s
               )
             ON CONFLICT
               (site, username)
             DO UPDATE SET
               name = EXCLUDED.name,
               image_url = EXCLUDED.image_url,
+              title = EXCLUDED.title,
               languages = EXCLUDED.languages,
               rapid = EXCLUDED.rapid,
               blitz = EXCLUDED.blitz,
@@ -150,6 +156,7 @@ def upsert_row(conn, row: Row):
                 row["username"],
                 row.get("name"),
                 row.get("image_url"),
+                row["title"].value if "title" in row else None,
                 row.get("languages", []),
                 row.get("rapid"),
                 row.get("blitz"),

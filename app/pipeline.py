@@ -5,7 +5,7 @@ from typing import Any, List, Tuple
 import aiohttp
 
 from app.database import Row, RowKey, upsert_row
-from app.types import Site
+from app.types import Site, Title
 
 
 class Fetcher:
@@ -104,6 +104,9 @@ class Extractor:
     def get_image_url(self) -> str | None:
         raise NotImplementedError()
 
+    def get_title(self) -> Title | None:
+        raise NotImplementedError()
+
     def get_languages(self) -> List[str] | None:
         raise NotImplementedError()
 
@@ -125,6 +128,7 @@ class Extractor:
 
         _insert(row, "name", self.get_name())
         _insert(row, "image_url", self.get_image_url())
+        _insert(row, "title", self.get_title())
         _insert(row, "languages", self.get_languages())
         _insert(row, "rapid", self.get_rapid())
         _insert(row, "blitz", self.get_blitz())

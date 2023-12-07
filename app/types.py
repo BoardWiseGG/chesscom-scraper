@@ -7,6 +7,19 @@ class Site(enum.Enum):
     LICHESS = "lichess"
 
 
+class Title(enum.Enum):
+    GM = "GM"  # Grandmaster
+    IM = "IM"  # International master
+    FM = "FM"  # FIDE master
+    CM = "CM"  # Candidate master
+    NM = "NM"  # National master
+    WGM = "WGM"
+    WIM = "WIM"
+    WFM = "WFM"
+    WCM = "WCM"
+    WNM = "WNM"
+
+
 class Language(enum.Enum):
     en_GB = "English"
     af_ZA = "Afrikaans"

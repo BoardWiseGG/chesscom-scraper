@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup, SoupStrainer, Tag
 from app.pipeline import Extractor as BaseExtractor
 from app.pipeline import Fetcher as BaseFetcher
 from app.pipeline import Pipeline as BasePipeline
-from app.types import Site, lang_to_code
+from app.types import Site, Title, lang_to_code
 
 # The number of pages we will at most iterate through. This number was
 # determined by going to https://lichess.org/coach/all/all/alphabetical
@@ -103,6 +103,8 @@ def _profile_filter(elem: Tag | str | None, attrs={}) -> bool:
 
 
 def _stats_filter(elem: Tag | str | None, attrs={}) -> bool:
+    if "user-link" in attrs.get("class", ""):
+        return True
     if "profile-side" in attrs.get("class", ""):
         return True
     if "sub-ratings" in attrs.get("class", ""):
@@ -160,6 +162,18 @@ class Extractor(BaseExtractor):
         if "image.lichess1.org" not in src:
             return None
         return src
+
+    def get_title(self) -> Title | None:
+        if self.stats_soup is None:
+            return None
+        utitle = self.stats_soup.find("span", class_="utitle")
+        if not isinstance(utitle, Tag):
+            return None
+        title = utitle.get_text().strip()
+        try:
+            return Title(title)
+        except ValueError:
+            return None
 
     def get_languages(self) -> List[str] | None:
         if self.profile_soup is None:
