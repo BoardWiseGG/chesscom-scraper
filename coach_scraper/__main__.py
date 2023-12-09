@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+from dataclasses import dataclass
 from typing import List
 
 import aiohttp
@@ -11,35 +12,38 @@ from coach_scraper.database import backup_database, load_languages
 from coach_scraper.lichess import Pipeline as LichessPipeline
 from coach_scraper.types import Site
 
-# The number of parallel extraction jobs that are run at a time.
-WORKER_COUNT = 10
+
+@dataclass
+class Context:
+    conn: psycopg2._psycopg.connection
+    detector: LanguageDetector
+    worker_count: int
+    user_agent: str
 
 
 async def _process(
-    site: Site, conn, detector: LanguageDetector, session: aiohttp.ClientSession
+    site: Site,
+    context: Context,
+    session: aiohttp.ClientSession,
 ):
     if site == Site.CHESSCOM:
-        await ChesscomPipeline(worker_count=WORKER_COUNT).process(
-            conn, detector, session
+        await ChesscomPipeline(worker_count=context.worker_count).process(
+            context.conn, context.detector, session
         )
     elif site == Site.LICHESS:
-        await LichessPipeline(worker_count=WORKER_COUNT).process(
-            conn, detector, session
+        await LichessPipeline(worker_count=context.worker_count).process(
+            context.conn, context.detector, session
         )
     else:
         assert False, f"Encountered unknown site: {site}."
 
 
-async def _entrypoint(
-    conn, detector: LanguageDetector, user_agent: str, sites: List[Site]
-):
+async def _entrypoint(context: Context, sites: List[Site]):
     """Top-level entrypoint that dispatches a pipeline per requested site."""
     async with aiohttp.ClientSession(
-        headers={"User-Agent": f"BoardWise coach-scraper ({user_agent})"}
+        headers={"User-Agent": f"BoardWise coach-scraper ({context.user_agent})"}
     ) as session:
-        await asyncio.gather(
-            *[_process(site, conn, detector, session) for site in sites]
-        )
+        await asyncio.gather(*[_process(site, context, session) for site in sites])
 
 
 def main():
@@ -67,6 +71,9 @@ def main():
         ],
     )
 
+    # Other.
+    parser.add_argument("--workers", type=int, default=5)
+
     args = parser.parse_args()
 
     detector = LanguageDetectorBuilder.from_all_languages().build()
@@ -84,9 +91,12 @@ def main():
         load_languages(conn)
         asyncio.run(
             _entrypoint(
-                conn=conn,
-                detector=detector,
-                user_agent=args.user_agent,
+                Context(
+                    conn=conn,
+                    detector=detector,
+                    user_agent=args.user_agent,
+                    worker_count=args.workers,
+                ),
                 sites=list(map(Site, set(args.site))),
             )
         )

@@ -3,6 +3,7 @@ import sys
 from datetime import datetime
 from typing import List, Literal
 
+import psycopg2
 from typing_extensions import TypedDict
 
 from coach_scraper.locale import Locale, locale_to_str, native_to_locale
@@ -52,7 +53,7 @@ class Row(TypedDict, total=False):
     bullet: int
 
 
-def load_languages(conn):
+def load_languages(conn: psycopg2._psycopg.connection):
     """Load all known languages into the languages table."""
     cursor = None
     try:
@@ -77,7 +78,7 @@ def load_languages(conn):
             cursor.close()
 
 
-def backup_database(conn):
+def backup_database(conn: psycopg2._psycopg.connection):
     """Creates a backup of the export table.
 
     Simply copies the table at time of invocation into another table with a
@@ -113,7 +114,7 @@ def backup_database(conn):
             cursor.close()
 
 
-def upsert_row(conn, row: Row):
+def upsert_row(conn: psycopg2._psycopg.connection, row: Row):
     """Upsert the specified `Row` into the database table."""
     cursor = None
     try:
