@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os.path
 from typing import Any, List, Tuple
 
@@ -58,6 +59,7 @@ class Fetcher:
         async with self.session.get(url) as response:
             if response.status == 200:
                 return await response.text(), 200
+        logging.error(f"Could not fetch URL {url}. Status code: {response.status}")
         return None, response.status
 
     async def scrape_usernames(self, page_no: int) -> List[str] | None:
