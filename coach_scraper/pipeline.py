@@ -5,9 +5,9 @@ from typing import Any, List, Tuple
 import aiohttp
 from lingua import LanguageDetector
 
-from app.database import Row, RowKey, upsert_row
-from app.locale import Locale
-from app.types import Site, Title
+from coach_scraper.database import Row, RowKey, upsert_row
+from coach_scraper.locale import Locale
+from coach_scraper.types import Site, Title
 
 
 class Fetcher:

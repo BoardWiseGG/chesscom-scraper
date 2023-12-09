@@ -5,8 +5,8 @@ from typing import List, Literal
 
 from typing_extensions import TypedDict
 
-from app.locale import Locale, locale_to_str, native_to_locale
-from app.types import Site, Title
+from coach_scraper.locale import Locale, locale_to_str, native_to_locale
+from coach_scraper.types import Site, Title
 
 SCHEMA_NAME = "coach_scraper"
 MAIN_TABLE_NAME = "export"

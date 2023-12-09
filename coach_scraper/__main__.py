@@ -6,10 +6,10 @@ import aiohttp
 import psycopg2
 from lingua import LanguageDetector, LanguageDetectorBuilder
 
-from app.chesscom import Pipeline as ChesscomPipeline
-from app.database import backup_database, load_languages
-from app.lichess import Pipeline as LichessPipeline
-from app.types import Site
+from coach_scraper.chesscom import Pipeline as ChesscomPipeline
+from coach_scraper.database import backup_database, load_languages
+from coach_scraper.lichess import Pipeline as LichessPipeline
+from coach_scraper.types import Site
 
 # The number of parallel extraction jobs that are run at a time.
 WORKER_COUNT = 10

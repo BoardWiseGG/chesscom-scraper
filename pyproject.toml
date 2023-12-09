@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "app"
-version = "0.1.0"
+name = "coach-scraper"
+version = "0.1.3"
 description = ""
 authors = ["Joshua Potter <jrpotter2112@gmail.com>"]
 readme = "README.md"
@@ -12,13 +12,14 @@ aiohttp = "^3.8.6"
 lxml = "^4.9.3"
 psycopg2 = "^2.9.9"
 lingua-language-detector = "^2.0.1"
+typing-extensions = "^4.8.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-app = "app.__main__:main"
+coach-scraper = "coach_scraper.__main__:main"
 
 [[tool.mypy.overrides]]
 module = ["aiohttp", "lingua"]

@@ -7,11 +7,11 @@ import aiohttp
 from bs4 import BeautifulSoup, SoupStrainer, Tag
 from lingua import LanguageDetector
 
-from app.locale import Locale, native_to_locale
-from app.pipeline import Extractor as BaseExtractor
-from app.pipeline import Fetcher as BaseFetcher
-from app.pipeline import Pipeline as BasePipeline
-from app.types import Site, Title
+from coach_scraper.locale import Locale, native_to_locale
+from coach_scraper.pipeline import Extractor as BaseExtractor
+from coach_scraper.pipeline import Fetcher as BaseFetcher
+from coach_scraper.pipeline import Pipeline as BasePipeline
+from coach_scraper.types import Site, Title
 
 # The number of pages we will at most iterate through. This number was
 # determined by going to https://lichess.org/coach/all/all/alphabetical

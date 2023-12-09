@@ -88,8 +88,8 @@
             preferWheels = true;
           } // {
             # These attributes are passed to `buildPythonApplication`.
-            pname = "app";
-            version = "0.1.0";
+            pname = "coach-scraper";
+            version = "0.1.3";
           };
 
           default = self.packages.${system}.app;
